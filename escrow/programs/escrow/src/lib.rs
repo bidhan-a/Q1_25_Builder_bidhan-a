@@ -28,4 +28,9 @@ pub mod escrow {
         ctx.accounts.withdraw()?;
         Ok(())
     }
+
+    pub fn refund(ctx: Context<Refund>) -> Result<()> {
+        ctx.accounts.refund()?;
+        Ok(())
+    }
 }
