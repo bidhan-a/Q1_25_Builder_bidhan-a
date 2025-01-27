@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::{close_account, CloseAccount},
+    token::{close_account, transfer_checked, CloseAccount, TransferChecked},
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
 
@@ -14,7 +14,6 @@ pub struct Refund<'info> {
     pub maker: Signer<'info>,
 
     pub mint_a: InterfaceAccount<'info, Mint>,
-    pub mint_b: InterfaceAccount<'info, Mint>,
 
     #[account(
         mut,
@@ -46,7 +45,6 @@ pub struct Refund<'info> {
 
 impl<'info> Refund<'info> {
     pub fn refund(&mut self) -> Result<()> {
-        // Close the vault
         let seeds = &[
             b"escrow",
             self.maker.to_account_info().key.as_ref(),
@@ -55,6 +53,23 @@ impl<'info> Refund<'info> {
         ];
         let signer_seeds = &[&seeds[..]];
 
+        // Transfer tokens back from vault to maker.
+        let accounts = TransferChecked {
+            from: self.vault.to_account_info(),
+            to: self.maker_mint_a_ata.to_account_info(),
+            mint: self.mint_a.to_account_info(),
+            authority: self.escrow.to_account_info(),
+        };
+
+        let cpi_context = CpiContext::new_with_signer(
+            self.token_program.to_account_info(),
+            accounts,
+            signer_seeds,
+        );
+
+        transfer_checked(cpi_context, self.vault.amount, self.mint_a.decimals)?;
+
+        // Close the vault.
         let accounts = CloseAccount {
             account: self.vault.to_account_info(),
             destination: self.maker.to_account_info(),
