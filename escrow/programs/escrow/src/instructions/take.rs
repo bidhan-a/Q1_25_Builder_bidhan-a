@@ -10,7 +10,6 @@ use anchor_spl::{
 use crate::EscrowState;
 
 #[derive(Accounts)]
-#[instruction(seed: u8)]
 pub struct Take<'info> {
     #[account(mut)]
     pub taker: Signer<'info>,
@@ -18,8 +17,8 @@ pub struct Take<'info> {
     #[account(mut)]
     pub maker: SystemAccount<'info>,
 
-    pub mint_a: InterfaceAccount<'info, Mint>,
-    pub mint_b: InterfaceAccount<'info, Mint>,
+    pub mint_a: Box<InterfaceAccount<'info, Mint>>,
+    pub mint_b: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         init_if_needed,
@@ -27,21 +26,14 @@ pub struct Take<'info> {
         associated_token::mint=mint_a,
         associated_token::authority=taker,
     )]
-    pub taker_mint_a_ata: InterfaceAccount<'info, TokenAccount>,
+    pub taker_mint_a_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
         associated_token::mint=mint_b,
         associated_token::authority=taker,
     )]
-    pub taker_mint_b_ata: InterfaceAccount<'info, TokenAccount>,
-
-    #[account(
-        mut,
-        associated_token::mint = mint_a,
-        associated_token::authority = maker,
-    )]
-    pub maker_mint_a_ata: InterfaceAccount<'info, TokenAccount>,
+    pub taker_mint_b_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         init_if_needed,
@@ -49,21 +41,25 @@ pub struct Take<'info> {
         associated_token::mint=mint_b,
         associated_token::authority=maker,
     )]
-    pub maker_mint_b_ata: InterfaceAccount<'info, TokenAccount>,
+    pub maker_mint_b_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
         seeds=[b"escrow", escrow.maker.key().as_ref(), escrow.seed.to_le_bytes().as_ref()],
-        bump=escrow.bump
+        bump=escrow.bump,
+        has_one=mint_a,
+        has_one=mint_b,
+        has_one=maker,
+        close=maker
     )]
-    pub escrow: Account<'info, EscrowState>,
+    pub escrow: Box<Account<'info, EscrowState>>,
 
     #[account(
         mut,
         associated_token::mint=mint_a,
         associated_token::authority=escrow,
     )]
-    pub vault: InterfaceAccount<'info, TokenAccount>,
+    pub vault: Box<InterfaceAccount<'info, TokenAccount>>,
 
     pub system_program: Program<'info, System>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -75,9 +71,9 @@ impl<'info> Take<'info> {
         // Transfer tokens from taker to maker.
         let cpi_program = self.token_program.to_account_info();
         let cpi_accounts = TransferChecked {
-            from: self.taker.to_account_info(),
+            from: self.taker_mint_b_ata.to_account_info(),
             mint: self.mint_b.to_account_info(),
-            to: self.maker.to_account_info(),
+            to: self.maker_mint_b_ata.to_account_info(),
             authority: self.taker.to_account_info(),
         };
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);

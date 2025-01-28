@@ -8,20 +8,20 @@ use anchor_spl::{
 use crate::EscrowState;
 
 #[derive(Accounts)]
-#[instruction(seed: u8)]
+#[instruction(seed: u64)]
 pub struct Make<'info> {
     #[account(mut)]
     pub maker: Signer<'info>,
 
-    pub mint_a: InterfaceAccount<'info, Mint>,
-    pub mint_b: InterfaceAccount<'info, Mint>,
+    pub mint_a: Box<InterfaceAccount<'info, Mint>>,
+    pub mint_b: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         mut,
         associated_token::mint = mint_a,
         associated_token::authority = maker,
     )]
-    pub maker_mint_a_ata: InterfaceAccount<'info, TokenAccount>,
+    pub maker_mint_a_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         init,
@@ -30,7 +30,7 @@ pub struct Make<'info> {
         seeds=[b"escrow", maker.key().as_ref(), seed.to_le_bytes().as_ref()],
         bump
     )]
-    pub escrow: Account<'info, EscrowState>,
+    pub escrow: Box<Account<'info, EscrowState>>,
 
     #[account(
         init,
@@ -38,7 +38,7 @@ pub struct Make<'info> {
         associated_token::authority=escrow,
         payer=maker
     )]
-    pub vault: InterfaceAccount<'info, TokenAccount>,
+    pub vault: Box<InterfaceAccount<'info, TokenAccount>>,
 
     pub system_program: Program<'info, System>,
     pub associated_token_program: Program<'info, AssociatedToken>,
