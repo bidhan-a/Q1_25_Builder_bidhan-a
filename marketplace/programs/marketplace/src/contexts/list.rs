@@ -47,7 +47,7 @@ pub struct List<'info> {
     pub collection_mint: InterfaceAccount<'info, Mint>,
     #[account(
         seeds = [
-            b"metadata", 
+            b"metadata",
             metadata_program.key().as_ref(),
             maker_mint.key().as_ref(),
         ],
@@ -60,7 +60,7 @@ pub struct List<'info> {
 
     #[account(
         seeds = [
-            b"metadata", 
+            b"metadata",
             metadata_program.key().as_ref(),
             maker_mint.key().as_ref(),
             b"edition"
@@ -69,7 +69,6 @@ pub struct List<'info> {
         bump,
     )]
     pub master_edition: Account<'info, MasterEditionAccount>,
-
     pub metadata_program: Program<'info, Metadata>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Interface<'info, TokenInterface>,
