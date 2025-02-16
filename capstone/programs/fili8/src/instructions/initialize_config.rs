@@ -6,11 +6,11 @@ use crate::state::Config;
 #[derive(Accounts)]
 pub struct InitializeConfig<'info> {
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub initializer: Signer<'info>,
 
     #[account(
         init,
-        payer=payer,
+        payer=initializer,
         seeds=[b"config"],
         bump,
         space=Config::INIT_SPACE + 8
@@ -19,7 +19,7 @@ pub struct InitializeConfig<'info> {
 
     #[account(
         init,
-        payer=payer,
+        payer=initializer,
         seeds=[b"reward_mint"],
         bump,
         mint::decimals=6,
@@ -41,15 +41,17 @@ impl<'info> InitializeConfig<'info> {
     pub fn initialize_config(
         &mut self,
         admin: Option<Pubkey>,
-        fee_basis_points: u16,
+        campaign_creation_fee: u16,
+        commission_fee: u16,
         bumps: &InitializeConfigBumps,
     ) -> Result<()> {
-        // If admin is not provided, set the signer/payer as the admin.
-        let admin = admin.unwrap_or(self.payer.key());
+        // If admin is not provided, set the initializer as the admin.
+        let admin = admin.unwrap_or(self.initializer.key());
 
         self.config.set_inner(Config {
             admin,
-            fee_basis_points,
+            campaign_creation_fee,
+            commission_fee,
             bump: bumps.config,
             treasury_bump: bumps.treasury,
             reward_mint_bump: bumps.reward_mint,
