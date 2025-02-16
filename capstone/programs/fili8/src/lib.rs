@@ -15,14 +15,31 @@ pub mod fili8 {
     pub fn initialize_config(
         ctx: Context<InitializeConfig>,
         admin: Option<Pubkey>,
-        fee_basis_points: u16,
+        campaign_creation_fee: u16,
+        commission_fee: u16,
     ) -> Result<()> {
         ctx.accounts
-            .initialize_config(admin, fee_basis_points, &ctx.bumps)
+            .initialize_config(admin, campaign_creation_fee, commission_fee, &ctx.bumps)
+    }
+
+    pub fn create_merchant(
+        ctx: Context<CreateMerchant>,
+        name: String,
+        description: String,
+    ) -> Result<()> {
+        ctx.accounts.create_merchant(name, description, &ctx.bumps)
+    }
+
+    pub fn create_affiliate(
+        ctx: Context<CreateAffiliate>,
+        name: String,
+        description: String,
+    ) -> Result<()> {
+        ctx.accounts.create_affiliate(name, description, &ctx.bumps)
     }
 
     pub fn create_campaign(
-        ctx: Context<CreatCampaign>,
+        ctx: Context<CreateCampaign>,
         seed: u64,
         owner: Option<Pubkey>,
         name: String,

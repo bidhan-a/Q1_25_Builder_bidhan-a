@@ -3,33 +3,40 @@ use anchor_lang::{
     system_program::{transfer, Transfer},
 };
 
-use crate::state::Campaign;
+use crate::state::{Campaign, Merchant};
 
 #[derive(Accounts)]
 #[instruction(seed: u64)]
-pub struct CreatCampaign<'info> {
+pub struct CreateCampaign<'info> {
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub signer: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds=[b"merchant", signer.key.as_ref()],
+        bump=merchant.bump
+    )]
+    pub merchant: Account<'info, Merchant>,
 
     #[account(
         init,
-        payer=payer,
-        seeds=[b"campaign", payer.key().as_ref(), seed.to_le_bytes().as_ref()],
+        payer=signer,
+        seeds=[b"campaign", signer.key().as_ref(), seed.to_le_bytes().as_ref()],
         bump,
         space=Campaign::INIT_SPACE
     )]
     pub campaign: Account<'info, Campaign>,
 
     #[account(
-        seeds=[b"vault", campaign.key().as_ref()],
+        seeds=[b"escrow", campaign.key().as_ref()],
         bump,
     )]
-    pub vault: SystemAccount<'info>,
+    pub escrow: SystemAccount<'info>,
 
     pub system_program: Program<'info, System>,
 }
 
-impl<'info> CreatCampaign<'info> {
+impl<'info> CreateCampaign<'info> {
     pub fn create_campaign(
         &mut self,
         seed: u64,
@@ -40,9 +47,9 @@ impl<'info> CreatCampaign<'info> {
         budget: u64,
         commission_per_referral: u64,
         ends_at: Option<i64>,
-        bumps: &CreatCampaignBumps,
+        bumps: &CreateCampaignBumps,
     ) -> Result<()> {
-        let owner = owner.unwrap_or(self.payer.key());
+        let owner = owner.unwrap_or(self.signer.key());
 
         // TODO: Validations.
 
@@ -59,15 +66,16 @@ impl<'info> CreatCampaign<'info> {
             ends_at,
             is_cancelled: false,
             is_paused: false,
+            total_affiliates: 0,
             campaign_bump: bumps.campaign,
-            vault_bump: bumps.vault,
+            escrow_bump: bumps.escrow,
         });
 
-        // Transfer budget to vault.
+        // Transfer budget to escrow.
         let system_program = self.system_program.to_account_info();
         let accounts = Transfer {
-            from: self.payer.to_account_info(),
-            to: self.vault.to_account_info(),
+            from: self.signer.to_account_info(),
+            to: self.escrow.to_account_info(),
         };
         let cpi_context = CpiContext::new(system_program, accounts);
         transfer(cpi_context, budget)?;
