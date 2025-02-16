@@ -2,7 +2,9 @@ use anchor_lang::{
     prelude::*,
     system_program::{transfer, Transfer},
 };
+use url::Url;
 
+use crate::errors::Error;
 use crate::state::{Campaign, Merchant};
 
 #[derive(Accounts)]
@@ -51,7 +53,10 @@ impl<'info> CreateCampaign<'info> {
     ) -> Result<()> {
         let owner = owner.unwrap_or(self.signer.key());
 
-        // TODO: Validations.
+        require!(name.len() <= 50, Error::NameTooLong);
+        require!(name.len() >= 10, Error::NameTooShort);
+        require!(description.len() <= 100, Error::DescriptionTooLong);
+        require!(Url::parse(&product_uri).is_ok(), Error::InvalidProductURI);
 
         self.campaign.set_inner(Campaign {
             seed,

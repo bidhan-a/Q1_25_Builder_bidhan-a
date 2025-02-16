@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 
+use crate::errors::Error;
 use crate::state::Merchant;
 
 #[derive(Accounts)]
@@ -26,6 +27,10 @@ impl<'info> CreateMerchant<'info> {
         description: String,
         bumps: &CreateMerchantBumps,
     ) -> Result<()> {
+        require!(name.len() <= 50, Error::NameTooLong);
+        require!(name.len() >= 10, Error::NameTooShort);
+        require!(description.len() <= 100, Error::DescriptionTooLong);
+
         self.merchant.set_inner(Merchant {
             name,
             description,
