@@ -9,7 +9,7 @@ mod state;
 use instructions::*;
 
 #[program]
-pub mod fili8 {
+pub mod fili_8 {
     use super::*;
 
     pub fn initialize_config(

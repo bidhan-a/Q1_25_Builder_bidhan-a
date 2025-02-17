@@ -1,12 +1,12 @@
 [package]
-name = "fili8"
+name = "fili_8"
 version = "0.1.0"
 description = "Created with Anchor"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "fili8"
+name = "fili_8"
 
 [features]
 default = []
