@@ -1,17 +1,28 @@
-use anchor_lang::{
-    prelude::*,
-    system_program::{transfer, Transfer},
-};
+use anchor_lang::prelude::*;
 use url::Url;
 
-use crate::errors::Error;
+use crate::helpers::transfer_sol;
 use crate::state::{Campaign, Merchant};
+use crate::{errors::Error, state::Config};
 
 #[derive(Accounts)]
 #[instruction(seed: u64)]
 pub struct CreateCampaign<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
+
+    #[account(
+        seeds=[b"config"],
+        bump=config.bump
+    )]
+    pub config: Account<'info, Config>,
+
+    #[account(
+        mut,
+        seeds=[b"treasury"],
+        bump=config.treasury_bump
+    )]
+    pub treasury: SystemAccount<'info>,
 
     #[account(
         mut,
@@ -30,8 +41,9 @@ pub struct CreateCampaign<'info> {
     pub campaign: Account<'info, Campaign>,
 
     #[account(
+        mut,
         seeds=[b"escrow", campaign.key().as_ref()],
-        bump,
+        bump
     )]
     pub escrow: SystemAccount<'info>,
 
@@ -74,13 +86,25 @@ impl<'info> CreateCampaign<'info> {
         });
 
         // Transfer budget to escrow.
-        let system_program = self.system_program.to_account_info();
-        let accounts = Transfer {
-            from: self.signer.to_account_info(),
-            to: self.escrow.to_account_info(),
-        };
-        let cpi_context = CpiContext::new(system_program, accounts);
-        transfer(cpi_context, budget)?;
+        transfer_sol(
+            self.signer.to_account_info(),
+            self.escrow.to_account_info(),
+            budget,
+            self.system_program.to_account_info(),
+        )?;
+
+        // Transfer campaign creation fee to treasury.
+        let campaign_creation_fee = (self.config.campaign_creation_fee as u64)
+            .checked_mul(budget)
+            .unwrap()
+            .checked_div(10000_u64)
+            .unwrap();
+        transfer_sol(
+            self.signer.to_account_info(),
+            self.treasury.to_account_info(),
+            campaign_creation_fee,
+            self.system_program.to_account_info(),
+        )?;
 
         Ok(())
     }

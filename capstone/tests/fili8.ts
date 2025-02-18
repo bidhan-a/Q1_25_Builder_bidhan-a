@@ -11,6 +11,8 @@ describe("fili8", () => {
   anchor.setProvider(provider);
   const program = anchor.workspace.Fili8 as Program<Fili8>;
 
+  const campaignSeed = new anchor.BN(1);
+
   // Accounts.
   const initializerKeypair = anchor.web3.Keypair.generate();
   const merchantKeypair = anchor.web3.Keypair.generate();
@@ -20,6 +22,7 @@ describe("fili8", () => {
   let config: anchor.web3.PublicKey;
   let merchant: anchor.web3.PublicKey;
   let affiliate: anchor.web3.PublicKey;
+  let campaign: anchor.web3.PublicKey;
 
   before(async () => {
     const latestBlockhash = await provider.connection.getLatestBlockhash();
@@ -66,6 +69,14 @@ describe("fili8", () => {
       [Buffer.from("affiliate"), affiliateKeypair.publicKey.toBuffer()],
       program.programId
     );
+    [campaign] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("campaign"),
+        merchant.toBuffer(),
+        campaignSeed.toBuffer("le", 8),
+      ],
+      program.programId
+    );
   });
 
   it("[initialize_config] initializes config", async () => {
@@ -86,12 +97,11 @@ describe("fili8", () => {
     assert.ok(configAccount.commissionFee === 50);
   });
 
-  it("[create_merchant] validates merchant name and description", async () => {
+  it("[create_merchant] validates merchant name", async () => {
     const merchantName = "Merchant A";
-    const merchantDescription = "Test description";
+    const merchantDescription = "Test description.";
     const shortMerchantName = "Invalid";
     const longMerchantName = merchantName.repeat(10);
-    const longMerchantDescription = merchantDescription.repeat(10);
 
     // Validate short name.
     try {
@@ -122,6 +132,12 @@ describe("fili8", () => {
     } catch (err) {
       assert.match(err.toString(), /NameTooLong/);
     }
+  });
+
+  it("[create_merchant] validates merchant description", async () => {
+    const merchantName = "Merchant A";
+    const merchantDescription = "Test description.";
+    const longMerchantDescription = merchantDescription.repeat(10);
 
     // Validate long description.
     try {
@@ -141,7 +157,7 @@ describe("fili8", () => {
 
   it("[create_merchant] creates merchant", async () => {
     const merchantName = "Merchant A";
-    const merchantDescription = "I am a cool merchant.";
+    const merchantDescription = "Test description.";
 
     await program.methods
       .createMerchant(merchantName, merchantDescription)
@@ -160,12 +176,11 @@ describe("fili8", () => {
     assert.ok(merchantAccount.totalSpent.eq(new anchor.BN(0)));
   });
 
-  it("[create_affiliate] validates affiliate name and description", async () => {
+  it("[create_affiliate] validates affiliate name", async () => {
     const affiliateName = "Affiliate A";
-    const affiliateDescription = "Test description";
+    const affiliateDescription = "Test description.";
     const shortAffiliateName = "Invalid";
     const longAffiliateName = affiliateName.repeat(10);
-    const longAffiliateDescription = affiliateDescription.repeat(10);
 
     // Validate short name.
     try {
@@ -196,6 +211,12 @@ describe("fili8", () => {
     } catch (err) {
       assert.match(err.toString(), /NameTooLong/);
     }
+  });
+
+  it("[create_affiliate] validates affiliate description", async () => {
+    const affiliateName = "Affiliate A";
+    const affiliateDescription = "Test description.";
+    const longAffiliateDescription = affiliateDescription.repeat(10);
 
     // Validate long description.
     try {
@@ -215,7 +236,7 @@ describe("fili8", () => {
 
   it("[create_affiliate] creates affiliate", async () => {
     const affiliateName = "Affiliate A";
-    const affiliateDescription = "I am a cool affiliate.";
+    const affiliateDescription = "Test description.";
 
     await program.methods
       .createAffiliate(affiliateName, affiliateDescription)
@@ -232,5 +253,120 @@ describe("fili8", () => {
     assert.ok(affiliateAccount.description === affiliateDescription);
     assert.ok(affiliateAccount.totalCampaigns === 0);
     assert.ok(affiliateAccount.totalEarned.eq(new anchor.BN(0)));
+  });
+
+  it("[create_campaign] validates campaign name", async () => {
+    const campaignName = "Campaign A";
+    const campaignDescription = "Test description.";
+    const productUri = "https://test.store.com/PRODUCT_ID";
+    const campaignBudget = new anchor.BN(10 * LAMPORTS_PER_SOL);
+    const commissionPerReferral = new anchor.BN(1 * LAMPORTS_PER_SOL);
+    const shortCampaignName = "Invalid";
+    const longCampaignName = campaignName.repeat(10);
+
+    // Validate short name.
+    try {
+      await program.methods
+        .createCampaign(
+          campaignSeed,
+          shortCampaignName,
+          campaignDescription,
+          productUri,
+          campaignBudget,
+          commissionPerReferral,
+          null
+        )
+        .accountsPartial({
+          signer: merchantKeypair.publicKey,
+          merchant,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchantKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /NameTooShort/);
+    }
+
+    // Validate long name.
+    try {
+      await program.methods
+        .createCampaign(
+          campaignSeed,
+          longCampaignName,
+          campaignDescription,
+          productUri,
+          campaignBudget,
+          commissionPerReferral,
+          null
+        )
+        .accountsPartial({
+          signer: merchantKeypair.publicKey,
+          merchant,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchantKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /NameTooLong/);
+    }
+  });
+
+  it("[create_campaign] validates campaign description", async () => {
+    const campaignName = "Campaign A";
+    const campaignDescription = "Test description.";
+    const productUri = "https://test.store.com/PRODUCT_ID";
+    const campaignBudget = new anchor.BN(10 * LAMPORTS_PER_SOL);
+    const commissionPerReferral = new anchor.BN(1 * LAMPORTS_PER_SOL);
+    const longCampaignDescription = campaignDescription.repeat(10);
+
+    // Validate long description.
+    try {
+      await program.methods
+        .createCampaign(
+          campaignSeed,
+          campaignName,
+          longCampaignDescription,
+          productUri,
+          campaignBudget,
+          commissionPerReferral,
+          null
+        )
+        .accountsPartial({
+          signer: merchantKeypair.publicKey,
+          merchant,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchantKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /DescriptionTooLong/);
+    }
+  });
+
+  it("[create_campaign] creates a campaign", async () => {
+    const campaignName = "Campaign A";
+    const campaignDescription = "Test description.";
+    const productUri = "https://test.store.com/PRODUCT_ID";
+    const campaignBudget = new anchor.BN(10 * LAMPORTS_PER_SOL);
+    const commissionPerReferral = new anchor.BN(1 * LAMPORTS_PER_SOL);
+
+    await program.methods
+      .createCampaign(
+        campaignSeed,
+        campaignName,
+        campaignDescription,
+        productUri,
+        campaignBudget,
+        commissionPerReferral,
+        null
+      )
+      .accountsPartial({
+        signer: merchantKeypair.publicKey,
+        merchant,
+        campaign,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([merchantKeypair])
+      .rpc();
   });
 });
