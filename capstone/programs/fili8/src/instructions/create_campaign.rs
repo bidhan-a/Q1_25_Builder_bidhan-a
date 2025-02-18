@@ -23,7 +23,7 @@ pub struct CreateCampaign<'info> {
     #[account(
         init,
         payer=signer,
-        seeds=[b"campaign", signer.key().as_ref(), seed.to_le_bytes().as_ref()],
+        seeds=[b"campaign", merchant.key().as_ref(), seed.to_le_bytes().as_ref()],
         bump,
         space=Campaign::INIT_SPACE
     )]
@@ -42,7 +42,6 @@ impl<'info> CreateCampaign<'info> {
     pub fn create_campaign(
         &mut self,
         seed: u64,
-        owner: Option<Pubkey>,
         name: String,
         description: String,
         product_uri: String,
@@ -51,8 +50,6 @@ impl<'info> CreateCampaign<'info> {
         ends_at: Option<i64>,
         bumps: &CreateCampaignBumps,
     ) -> Result<()> {
-        let owner = owner.unwrap_or(self.signer.key());
-
         require!(name.len() <= 50, Error::NameTooLong);
         require!(name.len() >= 10, Error::NameTooShort);
         require!(description.len() <= 100, Error::DescriptionTooLong);
@@ -60,7 +57,7 @@ impl<'info> CreateCampaign<'info> {
 
         self.campaign.set_inner(Campaign {
             seed,
-            owner,
+            owner: self.merchant.key(),
             name,
             description,
             product_uri,

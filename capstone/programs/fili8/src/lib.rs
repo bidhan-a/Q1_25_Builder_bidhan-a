@@ -14,12 +14,11 @@ pub mod fili_8 {
 
     pub fn initialize_config(
         ctx: Context<InitializeConfig>,
-        admin: Option<Pubkey>,
         campaign_creation_fee: u16,
         commission_fee: u16,
     ) -> Result<()> {
         ctx.accounts
-            .initialize_config(admin, campaign_creation_fee, commission_fee, &ctx.bumps)
+            .initialize_config(campaign_creation_fee, commission_fee, &ctx.bumps)
     }
 
     pub fn create_merchant(
@@ -41,7 +40,6 @@ pub mod fili_8 {
     pub fn create_campaign(
         ctx: Context<CreateCampaign>,
         seed: u64,
-        owner: Option<Pubkey>,
         name: String,
         description: String,
         product_uri: String,
@@ -51,7 +49,6 @@ pub mod fili_8 {
     ) -> Result<()> {
         ctx.accounts.create_campaign(
             seed,
-            owner,
             name,
             description,
             product_uri,
