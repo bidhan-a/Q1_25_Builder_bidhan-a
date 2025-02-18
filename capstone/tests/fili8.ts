@@ -16,6 +16,7 @@ describe("fili8", () => {
   const merchantKeypair = anchor.web3.Keypair.generate();
   const affiliateKeypair = anchor.web3.Keypair.generate();
 
+  // PDAs.
   let config: anchor.web3.PublicKey;
   let merchant: anchor.web3.PublicKey;
   let affiliate: anchor.web3.PublicKey;
@@ -52,14 +53,22 @@ describe("fili8", () => {
       blockhash: latestBlockhash.blockhash,
       lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
     });
-  });
 
-  it("initializes config", async () => {
     [config] = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("config")],
       program.programId
     );
+    [merchant] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("merchant"), merchantKeypair.publicKey.toBuffer()],
+      program.programId
+    );
+    [affiliate] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("affiliate"), affiliateKeypair.publicKey.toBuffer()],
+      program.programId
+    );
+  });
 
+  it("[initialize_config] initializes config", async () => {
     await program.methods
       .initializeConfig(100, 50)
       .accountsPartial({
@@ -77,13 +86,62 @@ describe("fili8", () => {
     assert.ok(configAccount.commissionFee === 50);
   });
 
-  it("creates merchant", async () => {
+  it("[create_merchant] validates merchant name and description", async () => {
+    const merchantName = "Merchant A";
+    const merchantDescription = "Test description";
+    const shortMerchantName = "Invalid";
+    const longMerchantName = merchantName.repeat(10);
+    const longMerchantDescription = merchantDescription.repeat(10);
+
+    // Validate short name.
+    try {
+      await program.methods
+        .createMerchant(shortMerchantName, merchantDescription)
+        .accountsPartial({
+          signer: merchantKeypair.publicKey,
+          merchant,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchantKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /NameTooShort/);
+    }
+
+    // Validate long name.
+    try {
+      await program.methods
+        .createMerchant(longMerchantName, merchantDescription)
+        .accountsPartial({
+          signer: merchantKeypair.publicKey,
+          merchant,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchantKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /NameTooLong/);
+    }
+
+    // Validate long description.
+    try {
+      await program.methods
+        .createMerchant(merchantName, longMerchantDescription)
+        .accountsPartial({
+          signer: merchantKeypair.publicKey,
+          merchant,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchantKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /DescriptionTooLong/);
+    }
+  });
+
+  it("[create_merchant] creates merchant", async () => {
     const merchantName = "Merchant A";
     const merchantDescription = "I am a cool merchant.";
-    [merchant] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("merchant"), merchantKeypair.publicKey.toBuffer()],
-      program.programId
-    );
 
     await program.methods
       .createMerchant(merchantName, merchantDescription)
@@ -102,13 +160,62 @@ describe("fili8", () => {
     assert.ok(merchantAccount.totalSpent.eq(new anchor.BN(0)));
   });
 
-  it("creates affiliate", async () => {
+  it("[create_affiliate] validates affiliate name and description", async () => {
+    const affiliateName = "Affiliate A";
+    const affiliateDescription = "Test description";
+    const shortAffiliateName = "Invalid";
+    const longAffiliateName = affiliateName.repeat(10);
+    const longAffiliateDescription = affiliateDescription.repeat(10);
+
+    // Validate short name.
+    try {
+      await program.methods
+        .createAffiliate(shortAffiliateName, affiliateDescription)
+        .accountsPartial({
+          signer: affiliateKeypair.publicKey,
+          affiliate,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([affiliateKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /NameTooShort/);
+    }
+
+    // Validate long name.
+    try {
+      await program.methods
+        .createAffiliate(longAffiliateName, affiliateDescription)
+        .accountsPartial({
+          signer: affiliateKeypair.publicKey,
+          affiliate,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([affiliateKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /NameTooLong/);
+    }
+
+    // Validate long description.
+    try {
+      await program.methods
+        .createAffiliate(affiliateName, longAffiliateDescription)
+        .accountsPartial({
+          signer: affiliateKeypair.publicKey,
+          affiliate,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([affiliateKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /DescriptionTooLong/);
+    }
+  });
+
+  it("[create_affiliate] creates affiliate", async () => {
     const affiliateName = "Affiliate A";
     const affiliateDescription = "I am a cool affiliate.";
-    [affiliate] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("affiliate"), affiliateKeypair.publicKey.toBuffer()],
-      program.programId
-    );
 
     await program.methods
       .createAffiliate(affiliateName, affiliateDescription)
