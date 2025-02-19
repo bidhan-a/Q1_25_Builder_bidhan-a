@@ -62,4 +62,8 @@ pub mod fili_8 {
     pub fn join_campaign(ctx: Context<JoinCampaign>) -> Result<()> {
         ctx.accounts.join_campaign(&ctx.bumps)
     }
+
+    pub fn report_conversion(ctx: Context<ReportConversion>) -> Result<()> {
+        ctx.accounts.report_conversion()
+    }
 }

@@ -91,6 +91,7 @@ impl<'info> CreateCampaign<'info> {
             self.escrow.to_account_info(),
             budget,
             self.system_program.to_account_info(),
+            None,
         )?;
 
         // Transfer campaign creation fee to treasury.
@@ -104,6 +105,7 @@ impl<'info> CreateCampaign<'info> {
             self.treasury.to_account_info(),
             campaign_creation_fee,
             self.system_program.to_account_info(),
+            None,
         )?;
 
         Ok(())

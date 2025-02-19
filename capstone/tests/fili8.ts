@@ -202,6 +202,9 @@ describe("fili8", () => {
       .rpc();
 
     const merchantAccount = await program.account.merchant.fetch(merchant);
+    assert.ok(
+      merchantAccount.owner.toString() === merchantKeypair.publicKey.toString()
+    );
     assert.ok(merchantAccount.name === merchantName);
     assert.ok(merchantAccount.description === merchantDescription);
     assert.ok(merchantAccount.totalCampaigns === 0);
@@ -269,6 +272,10 @@ describe("fili8", () => {
       .rpc();
 
     const affiliateAccount = await program.account.affiliate.fetch(affiliate);
+    assert.ok(
+      affiliateAccount.owner.toString() ===
+        affiliateKeypair.publicKey.toString()
+    );
     assert.ok(affiliateAccount.name === affiliateName);
     assert.ok(affiliateAccount.description === affiliateDescription);
     assert.ok(affiliateAccount.totalCampaigns === 0);

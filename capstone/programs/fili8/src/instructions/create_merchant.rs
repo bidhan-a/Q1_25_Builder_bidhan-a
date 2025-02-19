@@ -32,6 +32,7 @@ impl<'info> CreateMerchant<'info> {
         require!(description.len() <= 100, Error::DescriptionTooLong);
 
         self.merchant.set_inner(Merchant {
+            owner: self.signer.key(),
             name,
             description,
             total_campaigns: 0,

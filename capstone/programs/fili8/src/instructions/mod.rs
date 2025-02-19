@@ -13,4 +13,7 @@ pub use create_campaign::*;
 pub mod join_campaign;
 pub use join_campaign::*;
 
+pub mod report_conversion;
+pub use report_conversion::*;
+
 pub mod helpers;

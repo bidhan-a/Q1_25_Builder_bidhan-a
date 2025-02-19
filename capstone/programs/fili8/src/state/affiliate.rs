@@ -3,6 +3,7 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(InitSpace)]
 pub struct Affiliate {
+    pub owner: Pubkey,
     #[max_len(50)]
     pub name: String,
     #[max_len(100)]

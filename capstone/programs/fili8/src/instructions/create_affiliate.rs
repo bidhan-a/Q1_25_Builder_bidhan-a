@@ -32,6 +32,7 @@ impl<'info> CreateAffiliate<'info> {
         require!(description.len() <= 100, Error::DescriptionTooLong);
 
         self.affiliate.set_inner(Affiliate {
+            owner: self.signer.key(),
             name,
             description,
             total_campaigns: 0,
