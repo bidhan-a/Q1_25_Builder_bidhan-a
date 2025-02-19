@@ -58,4 +58,8 @@ pub mod fili_8 {
             &ctx.bumps,
         )
     }
+
+    pub fn join_campaign(ctx: Context<JoinCampaign>) -> Result<()> {
+        ctx.accounts.join_campaign(&ctx.bumps)
+    }
 }

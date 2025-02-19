@@ -36,7 +36,7 @@ pub struct CreateCampaign<'info> {
         payer=signer,
         seeds=[b"campaign", merchant.key().as_ref(), seed.to_le_bytes().as_ref()],
         bump,
-        space=Campaign::INIT_SPACE
+        space=Campaign::INIT_SPACE + 8
     )]
     pub campaign: Account<'info, Campaign>,
 

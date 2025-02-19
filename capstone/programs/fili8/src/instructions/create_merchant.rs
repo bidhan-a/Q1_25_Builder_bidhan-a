@@ -13,7 +13,7 @@ pub struct CreateMerchant<'info> {
         payer=signer,
         seeds=[b"merchant", signer.key.as_ref()],
         bump,
-        space=Merchant::INIT_SPACE
+        space=Merchant::INIT_SPACE + 8
     )]
     pub merchant: Account<'info, Merchant>,
 

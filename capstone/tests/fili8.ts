@@ -23,6 +23,7 @@ describe("fili8", () => {
   let affiliate: anchor.web3.PublicKey;
   let campaign: anchor.web3.PublicKey;
   let escrow: anchor.web3.PublicKey;
+  let campaignAffiliate: anchor.web3.PublicKey;
 
   // Test values.
   const campaignCreationFee = 100;
@@ -110,6 +111,14 @@ describe("fili8", () => {
     );
     [escrow] = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("escrow"), campaign.toBuffer()],
+      program.programId
+    );
+    [campaignAffiliate] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("campaign_affiliate"),
+        campaign.toBuffer(),
+        affiliate.toBuffer(),
+      ],
       program.programId
     );
   });
@@ -364,7 +373,7 @@ describe("fili8", () => {
     }
   });
 
-  it("[create_campaign] creates a campaign", async () => {
+  it("[create_campaign] merchant creates a campaign", async () => {
     const treasuryBalanceBefore = new anchor.BN(
       await provider.connection.getBalance(treasury)
     );
@@ -399,6 +408,8 @@ describe("fili8", () => {
     );
 
     const campaignAccount = await program.account.campaign.fetch(campaign);
+    assert.ok(campaignAccount.seed.eq(campaignSeed));
+    assert.ok(campaignAccount.owner.toString() === merchant.toString());
     assert.ok(campaignAccount.name === campaignName);
     assert.ok(campaignAccount.description === campaignDescription);
     assert.ok(campaignAccount.productUri === productUri);
@@ -418,5 +429,30 @@ describe("fili8", () => {
       .div(new anchor.BN(10000));
     assert.ok(treasuryBalanceAfter.eq(treasuryBalanceBefore.add(feeAmount)));
     assert.ok(escrowBalanceAfter.eq(escrowBalanceBefore.add(campaignBudget)));
+  });
+
+  it("[join_campaign] affiliate joins a campaign", async () => {
+    await program.methods
+      .joinCampaign()
+      .accountsPartial({
+        signer: affiliateKeypair.publicKey,
+        affiliate,
+        campaign,
+        // campaignAffiliate,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([affiliateKeypair])
+      .rpc();
+
+    const campaignAffiliateAccount =
+      await program.account.campaignAffiliate.fetch(campaignAffiliate);
+    assert.ok(
+      campaignAffiliateAccount.campaign.toString() === campaign.toString()
+    );
+    assert.ok(
+      campaignAffiliateAccount.affiliate.toString() === affiliate.toString()
+    );
+    assert.ok(campaignAffiliateAccount.successfulReferrals === 0);
+    assert.ok(campaignAffiliateAccount.totalEarned.eq(new anchor.BN(0)));
   });
 });

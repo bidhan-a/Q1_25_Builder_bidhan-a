@@ -13,7 +13,7 @@ pub struct CreateAffiliate<'info> {
         payer=signer,
         seeds=[b"affiliate", signer.key.as_ref()],
         bump,
-        space=Affiliate::INIT_SPACE
+        space=Affiliate::INIT_SPACE + 8
     )]
     pub affiliate: Account<'info, Affiliate>,
 

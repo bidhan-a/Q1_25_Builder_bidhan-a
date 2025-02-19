@@ -9,3 +9,6 @@ pub use affiliate::*;
 
 pub mod campaign;
 pub use campaign::*;
+
+pub mod campaign_affiliate;
+pub use campaign_affiliate::*;
