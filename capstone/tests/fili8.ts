@@ -11,8 +11,6 @@ describe("fili8", () => {
   anchor.setProvider(provider);
   const program = anchor.workspace.Fili8 as Program<Fili8>;
 
-  const campaignSeed = new anchor.BN(1);
-
   // Accounts.
   const initializerKeypair = anchor.web3.Keypair.generate();
   const merchantKeypair = anchor.web3.Keypair.generate();
@@ -20,9 +18,38 @@ describe("fili8", () => {
 
   // PDAs.
   let config: anchor.web3.PublicKey;
+  let treasury: anchor.web3.PublicKey;
   let merchant: anchor.web3.PublicKey;
   let affiliate: anchor.web3.PublicKey;
   let campaign: anchor.web3.PublicKey;
+  let escrow: anchor.web3.PublicKey;
+
+  // Test values.
+  const campaignCreationFee = 100;
+  const commissionFee = 50;
+
+  const merchantName = "Merchant A";
+  const shortMerchantName = "Invalid";
+  const longMerchantName = merchantName.repeat(10);
+  const merchantDescription = "Test description.";
+  const longMerchantDescription = merchantDescription.repeat(10);
+
+  const affiliateName = "Affiliate A";
+  const shortAffiliateName = "Invalid";
+  const longAffiliateName = affiliateName.repeat(10);
+  const affiliateDescription = "Test description.";
+  const longAffiliateDescription = affiliateDescription.repeat(10);
+
+  const campaignSeed = new anchor.BN(1);
+  const campaignName = "Campaign A";
+  const shortCampaignName = "Invalid";
+  const longCampaignName = campaignName.repeat(10);
+  const campaignDescription = "Test description.";
+  const longCampaignDescription = campaignDescription.repeat(10);
+  const productUri = "https://test.store.com/PRODUCT_ID";
+  const invalidProductUri = "invalid";
+  const campaignBudget = new anchor.BN(10 * LAMPORTS_PER_SOL);
+  const commissionPerReferral = new anchor.BN(1 * LAMPORTS_PER_SOL);
 
   before(async () => {
     const latestBlockhash = await provider.connection.getLatestBlockhash();
@@ -61,6 +88,10 @@ describe("fili8", () => {
       [Buffer.from("config")],
       program.programId
     );
+    [treasury] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("treasury")],
+      program.programId
+    );
     [merchant] = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("merchant"), merchantKeypair.publicKey.toBuffer()],
       program.programId
@@ -77,11 +108,15 @@ describe("fili8", () => {
       ],
       program.programId
     );
+    [escrow] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("escrow"), campaign.toBuffer()],
+      program.programId
+    );
   });
 
   it("[initialize_config] initializes config", async () => {
     await program.methods
-      .initializeConfig(100, 50)
+      .initializeConfig(campaignCreationFee, commissionFee)
       .accountsPartial({
         signer: initializerKeypair.publicKey,
         config,
@@ -93,16 +128,11 @@ describe("fili8", () => {
 
     const configAccount = await program.account.config.fetch(config);
     assert.ok(configAccount.admin.equals(initializerKeypair.publicKey));
-    assert.ok(configAccount.campaignCreationFee === 100);
-    assert.ok(configAccount.commissionFee === 50);
+    assert.ok(configAccount.campaignCreationFee === campaignCreationFee);
+    assert.ok(configAccount.commissionFee === commissionFee);
   });
 
   it("[create_merchant] validates merchant name", async () => {
-    const merchantName = "Merchant A";
-    const merchantDescription = "Test description.";
-    const shortMerchantName = "Invalid";
-    const longMerchantName = merchantName.repeat(10);
-
     // Validate short name.
     try {
       await program.methods
@@ -135,10 +165,6 @@ describe("fili8", () => {
   });
 
   it("[create_merchant] validates merchant description", async () => {
-    const merchantName = "Merchant A";
-    const merchantDescription = "Test description.";
-    const longMerchantDescription = merchantDescription.repeat(10);
-
     // Validate long description.
     try {
       await program.methods
@@ -156,9 +182,6 @@ describe("fili8", () => {
   });
 
   it("[create_merchant] creates merchant", async () => {
-    const merchantName = "Merchant A";
-    const merchantDescription = "Test description.";
-
     await program.methods
       .createMerchant(merchantName, merchantDescription)
       .accountsPartial({
@@ -177,11 +200,6 @@ describe("fili8", () => {
   });
 
   it("[create_affiliate] validates affiliate name", async () => {
-    const affiliateName = "Affiliate A";
-    const affiliateDescription = "Test description.";
-    const shortAffiliateName = "Invalid";
-    const longAffiliateName = affiliateName.repeat(10);
-
     // Validate short name.
     try {
       await program.methods
@@ -214,10 +232,6 @@ describe("fili8", () => {
   });
 
   it("[create_affiliate] validates affiliate description", async () => {
-    const affiliateName = "Affiliate A";
-    const affiliateDescription = "Test description.";
-    const longAffiliateDescription = affiliateDescription.repeat(10);
-
     // Validate long description.
     try {
       await program.methods
@@ -235,9 +249,6 @@ describe("fili8", () => {
   });
 
   it("[create_affiliate] creates affiliate", async () => {
-    const affiliateName = "Affiliate A";
-    const affiliateDescription = "Test description.";
-
     await program.methods
       .createAffiliate(affiliateName, affiliateDescription)
       .accountsPartial({
@@ -256,14 +267,6 @@ describe("fili8", () => {
   });
 
   it("[create_campaign] validates campaign name", async () => {
-    const campaignName = "Campaign A";
-    const campaignDescription = "Test description.";
-    const productUri = "https://test.store.com/PRODUCT_ID";
-    const campaignBudget = new anchor.BN(10 * LAMPORTS_PER_SOL);
-    const commissionPerReferral = new anchor.BN(1 * LAMPORTS_PER_SOL);
-    const shortCampaignName = "Invalid";
-    const longCampaignName = campaignName.repeat(10);
-
     // Validate short name.
     try {
       await program.methods
@@ -312,13 +315,6 @@ describe("fili8", () => {
   });
 
   it("[create_campaign] validates campaign description", async () => {
-    const campaignName = "Campaign A";
-    const campaignDescription = "Test description.";
-    const productUri = "https://test.store.com/PRODUCT_ID";
-    const campaignBudget = new anchor.BN(10 * LAMPORTS_PER_SOL);
-    const commissionPerReferral = new anchor.BN(1 * LAMPORTS_PER_SOL);
-    const longCampaignDescription = campaignDescription.repeat(10);
-
     // Validate long description.
     try {
       await program.methods
@@ -343,12 +339,38 @@ describe("fili8", () => {
     }
   });
 
+  it("[create_campaign] validates campaign product_uri", async () => {
+    // Validate long description.
+    try {
+      await program.methods
+        .createCampaign(
+          campaignSeed,
+          campaignName,
+          campaignDescription,
+          invalidProductUri,
+          campaignBudget,
+          commissionPerReferral,
+          null
+        )
+        .accountsPartial({
+          signer: merchantKeypair.publicKey,
+          merchant,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchantKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /InvalidProductURI/);
+    }
+  });
+
   it("[create_campaign] creates a campaign", async () => {
-    const campaignName = "Campaign A";
-    const campaignDescription = "Test description.";
-    const productUri = "https://test.store.com/PRODUCT_ID";
-    const campaignBudget = new anchor.BN(10 * LAMPORTS_PER_SOL);
-    const commissionPerReferral = new anchor.BN(1 * LAMPORTS_PER_SOL);
+    const treasuryBalanceBefore = new anchor.BN(
+      await provider.connection.getBalance(treasury)
+    );
+    const escrowBalanceBefore = new anchor.BN(
+      await provider.connection.getBalance(escrow)
+    );
 
     await program.methods
       .createCampaign(
@@ -368,5 +390,33 @@ describe("fili8", () => {
       })
       .signers([merchantKeypair])
       .rpc();
+
+    const treasuryBalanceAfter = new anchor.BN(
+      await provider.connection.getBalance(treasury)
+    );
+    const escrowBalanceAfter = new anchor.BN(
+      await provider.connection.getBalance(escrow)
+    );
+
+    const campaignAccount = await program.account.campaign.fetch(campaign);
+    assert.ok(campaignAccount.name === campaignName);
+    assert.ok(campaignAccount.description === campaignDescription);
+    assert.ok(campaignAccount.productUri === productUri);
+    assert.ok(campaignAccount.budget.eq(campaignBudget));
+    assert.ok(campaignAccount.commissionPerReferral.eq(commissionPerReferral));
+    assert.ok(campaignAccount.successfulReferrals === 0);
+    assert.exists(campaignAccount.createdAt);
+    assert.isNull(campaignAccount.endsAt);
+    assert.isFalse(campaignAccount.isCancelled);
+    assert.isFalse(campaignAccount.isPaused);
+    assert.ok(campaignAccount.totalAffiliates === 0);
+
+    // Check if the budget was transferred to the escrow and the fees
+    // were transferred to the treasury.
+    const feeAmount = new anchor.BN(campaignCreationFee)
+      .mul(campaignBudget)
+      .div(new anchor.BN(10000));
+    assert.ok(treasuryBalanceAfter.eq(treasuryBalanceBefore.add(feeAmount)));
+    assert.ok(escrowBalanceAfter.eq(escrowBalanceBefore.add(campaignBudget)));
   });
 });

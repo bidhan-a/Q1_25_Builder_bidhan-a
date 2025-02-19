@@ -15,7 +15,7 @@ pub struct Campaign {
 
     pub budget: u64,
     pub commission_per_referral: u64,
-    pub successful_referrals: u64,
+    pub successful_referrals: u32,
     pub created_at: i64,
     pub ends_at: Option<i64>,
     pub is_cancelled: bool,
