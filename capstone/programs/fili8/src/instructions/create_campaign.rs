@@ -73,7 +73,8 @@ impl<'info> CreateCampaign<'info> {
             name,
             description,
             product_uri,
-            budget,
+            total_budget: budget,
+            available_budget: budget,
             commission_per_referral,
             successful_referrals: 0,
             created_at: Clock::get()?.unix_timestamp,
@@ -107,6 +108,13 @@ impl<'info> CreateCampaign<'info> {
             self.system_program.to_account_info(),
             None,
         )?;
+
+        self.merchant.total_campaigns = self.merchant.total_campaigns.checked_add(1).unwrap();
+        self.merchant.total_spent = self
+            .merchant
+            .total_spent
+            .checked_add(campaign_creation_fee)
+            .unwrap();
 
         Ok(())
     }

@@ -42,6 +42,9 @@ impl<'info> JoinCampaign<'info> {
             bump: bumps.campaign_affiliate,
         });
 
+        self.campaign.total_affiliates = self.campaign.total_affiliates.checked_add(1).unwrap();
+        self.affiliate.total_campaigns = self.affiliate.total_campaigns.checked_add(1).unwrap();
+
         Ok(())
     }
 }

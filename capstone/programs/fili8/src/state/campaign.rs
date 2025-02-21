@@ -13,7 +13,8 @@ pub struct Campaign {
     #[max_len(100)]
     pub product_uri: String, // Product URI which should be promoted by affiliates.
 
-    pub budget: u64,
+    pub total_budget: u64,
+    pub available_budget: u64,
     pub commission_per_referral: u64,
     pub successful_referrals: u32,
     pub created_at: i64,

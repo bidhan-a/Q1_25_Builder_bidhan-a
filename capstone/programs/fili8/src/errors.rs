@@ -10,4 +10,8 @@ pub enum Error {
     DescriptionTooLong,
     #[msg("The product URI is invalid.")]
     InvalidProductURI,
+    #[msg("The campaign owner is invalid.")]
+    InvalidCampaignOwner,
+    #[msg("The payout address is invalid.")]
+    InvalidPayoutAddress,
 }
