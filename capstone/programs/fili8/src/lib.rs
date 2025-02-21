@@ -33,8 +33,10 @@ pub mod fili_8 {
         ctx: Context<CreateAffiliate>,
         name: String,
         description: String,
+        payout_address: Pubkey,
     ) -> Result<()> {
-        ctx.accounts.create_affiliate(name, description, &ctx.bumps)
+        ctx.accounts
+            .create_affiliate(name, description, payout_address, &ctx.bumps)
     }
 
     pub fn create_campaign(

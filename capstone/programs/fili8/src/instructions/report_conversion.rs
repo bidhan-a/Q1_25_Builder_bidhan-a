@@ -99,7 +99,7 @@ impl<'info> ReportConversion<'info> {
             Some(signer_seeds),
         )?;
 
-        // TODO: Update states.
+        // TODO: Update all states.
         self.campaign.successful_referrals =
             self.campaign.successful_referrals.checked_add(1).unwrap();
 

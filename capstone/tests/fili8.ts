@@ -215,7 +215,11 @@ describe("fili8", () => {
     // Validate short name.
     try {
       await program.methods
-        .createAffiliate(shortAffiliateName, affiliateDescription)
+        .createAffiliate(
+          shortAffiliateName,
+          affiliateDescription,
+          affiliateKeypair.publicKey
+        )
         .accountsPartial({
           signer: affiliateKeypair.publicKey,
           affiliate,
@@ -230,7 +234,11 @@ describe("fili8", () => {
     // Validate long name.
     try {
       await program.methods
-        .createAffiliate(longAffiliateName, affiliateDescription)
+        .createAffiliate(
+          longAffiliateName,
+          affiliateDescription,
+          affiliateKeypair.publicKey
+        )
         .accountsPartial({
           signer: affiliateKeypair.publicKey,
           affiliate,
@@ -247,7 +255,11 @@ describe("fili8", () => {
     // Validate long description.
     try {
       await program.methods
-        .createAffiliate(affiliateName, longAffiliateDescription)
+        .createAffiliate(
+          affiliateName,
+          longAffiliateDescription,
+          affiliateKeypair.publicKey
+        )
         .accountsPartial({
           signer: affiliateKeypair.publicKey,
           affiliate,
@@ -262,7 +274,11 @@ describe("fili8", () => {
 
   it("[create_affiliate] creates affiliate", async () => {
     await program.methods
-      .createAffiliate(affiliateName, affiliateDescription)
+      .createAffiliate(
+        affiliateName,
+        affiliateDescription,
+        affiliateKeypair.publicKey
+      )
       .accountsPartial({
         signer: affiliateKeypair.publicKey,
         affiliate,

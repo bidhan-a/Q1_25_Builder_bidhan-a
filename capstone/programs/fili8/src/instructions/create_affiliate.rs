@@ -25,6 +25,7 @@ impl<'info> CreateAffiliate<'info> {
         &mut self,
         name: String,
         description: String,
+        payout_address: Pubkey,
         bumps: &CreateAffiliateBumps,
     ) -> Result<()> {
         require!(name.len() <= 50, Error::NameTooLong);
@@ -35,6 +36,7 @@ impl<'info> CreateAffiliate<'info> {
             owner: self.signer.key(),
             name,
             description,
+            payout_address,
             total_campaigns: 0,
             total_earned: 0,
             bump: bumps.affiliate,
