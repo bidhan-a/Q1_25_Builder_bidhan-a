@@ -14,12 +14,14 @@ describe("fili8", () => {
   // Accounts.
   const initializerKeypair = anchor.web3.Keypair.generate();
   const merchantKeypair = anchor.web3.Keypair.generate();
+  const merchant2Keypair = anchor.web3.Keypair.generate();
   const affiliateKeypair = anchor.web3.Keypair.generate();
 
   // PDAs.
   let config: anchor.web3.PublicKey;
   let treasury: anchor.web3.PublicKey;
   let merchant: anchor.web3.PublicKey;
+  let merchant2: anchor.web3.PublicKey;
   let affiliate: anchor.web3.PublicKey;
   let campaign: anchor.web3.PublicKey;
   let escrow: anchor.web3.PublicKey;
@@ -50,7 +52,7 @@ describe("fili8", () => {
   const productUri = "https://test.store.com/PRODUCT_ID";
   const invalidProductUri = "invalid";
   const campaignBudget = new anchor.BN(10 * LAMPORTS_PER_SOL);
-  const commissionPerReferral = new anchor.BN(1 * LAMPORTS_PER_SOL);
+  const commissionPerReferral = new anchor.BN(7 * LAMPORTS_PER_SOL);
 
   before(async () => {
     const latestBlockhash = await provider.connection.getLatestBlockhash();
@@ -75,6 +77,16 @@ describe("fili8", () => {
       lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
     });
 
+    const merchant2Airdrop = await provider.connection.requestAirdrop(
+      merchant2Keypair.publicKey,
+      100 * LAMPORTS_PER_SOL
+    );
+    await provider.connection.confirmTransaction({
+      signature: merchant2Airdrop,
+      blockhash: latestBlockhash.blockhash,
+      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+    });
+
     const affiliateAirdrop = await provider.connection.requestAirdrop(
       affiliateKeypair.publicKey,
       100 * LAMPORTS_PER_SOL
@@ -95,6 +107,10 @@ describe("fili8", () => {
     );
     [merchant] = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("merchant"), merchantKeypair.publicKey.toBuffer()],
+      program.programId
+    );
+    [merchant2] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("merchant"), merchant2Keypair.publicKey.toBuffer()],
       program.programId
     );
     [affiliate] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -436,7 +452,8 @@ describe("fili8", () => {
     assert.ok(campaignAccount.name === campaignName);
     assert.ok(campaignAccount.description === campaignDescription);
     assert.ok(campaignAccount.productUri === productUri);
-    assert.ok(campaignAccount.budget.eq(campaignBudget));
+    assert.ok(campaignAccount.totalBudget.eq(campaignBudget));
+    assert.ok(campaignAccount.availableBudget.eq(campaignBudget));
     assert.ok(campaignAccount.commissionPerReferral.eq(commissionPerReferral));
     assert.ok(campaignAccount.successfulReferrals === 0);
     assert.exists(campaignAccount.createdAt);
@@ -461,14 +478,19 @@ describe("fili8", () => {
         signer: affiliateKeypair.publicKey,
         affiliate,
         campaign,
-        // campaignAffiliate,
+        campaignAffiliate,
         systemProgram: SystemProgram.programId,
       })
       .signers([affiliateKeypair])
       .rpc();
 
+    const campaignAccount = await program.account.campaign.fetch(campaign);
+    const affiliateAccount = await program.account.affiliate.fetch(affiliate);
     const campaignAffiliateAccount =
       await program.account.campaignAffiliate.fetch(campaignAffiliate);
+
+    assert.ok(campaignAccount.totalAffiliates === 1);
+    assert.ok(affiliateAccount.totalCampaigns === 1);
     assert.ok(
       campaignAffiliateAccount.campaign.toString() === campaign.toString()
     );
@@ -477,5 +499,172 @@ describe("fili8", () => {
     );
     assert.ok(campaignAffiliateAccount.successfulReferrals === 0);
     assert.ok(campaignAffiliateAccount.totalEarned.eq(new anchor.BN(0)));
+    assert.ok(affiliateAccount.totalCampaigns === 1);
+  });
+
+  it("[report_conversion] validates campaign owner", async () => {
+    try {
+      // Create a second merchant.
+      await program.methods
+        .createMerchant(merchantName, merchantDescription)
+        .accountsPartial({
+          signer: merchant2Keypair.publicKey,
+          merchant: merchant2,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchant2Keypair])
+        .rpc();
+
+      // Merchant tries to report conversion for a campaign that they don't own.
+      await program.methods
+        .reportConversion()
+        .accountsPartial({
+          signer: merchant2Keypair.publicKey,
+          merchant: merchant2,
+          campaign,
+          affiliate,
+          payoutAddress: affiliateKeypair.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchant2Keypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /InvalidCampaignOwner/);
+    }
+  });
+
+  it("[report_conversion] validates payout address", async () => {
+    try {
+      const randomKeypair = anchor.web3.Keypair.generate();
+      await program.methods
+        .reportConversion()
+        .accountsPartial({
+          signer: merchantKeypair.publicKey,
+          merchant: merchant,
+          campaign,
+          affiliate,
+          payoutAddress: randomKeypair.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchantKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /InvalidPayoutAddress/);
+    }
+  });
+
+  it("[report_conversion] merchant reports a conversion", async () => {
+    const treasuryBalanceBefore = new anchor.BN(
+      await provider.connection.getBalance(treasury)
+    );
+    const escrowBalanceBefore = new anchor.BN(
+      await provider.connection.getBalance(escrow)
+    );
+    const affiliatePayoutAddressBalanceBefore = new anchor.BN(
+      await provider.connection.getBalance(affiliateKeypair.publicKey)
+    );
+
+    const merchantAccountBefore = await program.account.merchant.fetch(
+      merchant
+    );
+    const affiliateAccountBefore = await program.account.affiliate.fetch(
+      affiliate
+    );
+    const campaignAccountBefore = await program.account.campaign.fetch(
+      campaign
+    );
+    const campaignAffiliateAccountBefore =
+      await program.account.campaignAffiliate.fetch(campaignAffiliate);
+
+    await program.methods
+      .reportConversion()
+      .accountsPartial({
+        signer: merchantKeypair.publicKey,
+        merchant: merchant,
+        campaign,
+        affiliate,
+        payoutAddress: affiliateKeypair.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([merchantKeypair])
+      .rpc();
+
+    const treasuryBalanceAfter = new anchor.BN(
+      await provider.connection.getBalance(treasury)
+    );
+    const escrowBalanceAfter = new anchor.BN(
+      await provider.connection.getBalance(escrow)
+    );
+    const affiliatePayoutAddressBalanceAfter = new anchor.BN(
+      await provider.connection.getBalance(affiliateKeypair.publicKey)
+    );
+
+    const merchantAccountAfter = await program.account.merchant.fetch(merchant);
+    const affiliateAccountAfter = await program.account.affiliate.fetch(
+      affiliate
+    );
+    const campaignAccountAfter = await program.account.campaign.fetch(campaign);
+    const campaignAffiliateAccountAfter =
+      await program.account.campaignAffiliate.fetch(campaignAffiliate);
+
+    // Check if commission has been deducted from the escrow.
+    assert.ok(
+      escrowBalanceAfter.eq(escrowBalanceBefore.sub(commissionPerReferral))
+    );
+
+    // Check if commission fee has been transferred to the treasury.
+    const feeAmount = new anchor.BN(commissionFee)
+      .mul(commissionPerReferral)
+      .div(new anchor.BN(10000));
+    assert.ok(treasuryBalanceAfter.eq(treasuryBalanceBefore.add(feeAmount)));
+
+    // Check if commission minus fee has been transferred to the affiliate's payout address.
+    const commissionMinusFee = commissionPerReferral.sub(feeAmount);
+    assert.ok(
+      affiliatePayoutAddressBalanceAfter.eq(
+        affiliatePayoutAddressBalanceBefore.add(commissionMinusFee)
+      )
+    );
+
+    // Check state.
+
+    // Merchant.
+    assert.ok(
+      merchantAccountAfter.totalSpent.eq(
+        merchantAccountBefore.totalSpent.add(commissionPerReferral)
+      )
+    );
+
+    // Affiliate.
+    assert.ok(
+      affiliateAccountAfter.totalEarned.eq(
+        affiliateAccountBefore.totalEarned.add(commissionPerReferral)
+      )
+    );
+
+    // Campaign.
+    assert.ok(
+      campaignAccountAfter.availableBudget.eq(
+        campaignAccountBefore.availableBudget.sub(commissionPerReferral)
+      )
+    );
+    assert.ok(
+      campaignAccountAfter.successfulReferrals ===
+        campaignAccountBefore.successfulReferrals + 1
+    );
+    // NOTE: The campaign should be paused because the available budget is
+    // less than the commission per referral now.
+    assert.ok(campaignAccountAfter.isPaused);
+
+    // CampaignAffiliate.
+    assert.ok(
+      campaignAffiliateAccountAfter.successfulReferrals ===
+        campaignAffiliateAccountBefore.successfulReferrals + 1
+    );
+    assert.ok(
+      campaignAffiliateAccountAfter.totalEarned.eq(
+        campaignAffiliateAccountBefore.totalEarned.add(commissionPerReferral)
+      )
+    );
   });
 });
