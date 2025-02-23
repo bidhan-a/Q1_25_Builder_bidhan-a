@@ -227,6 +227,77 @@ describe("fili8", () => {
     assert.ok(merchantAccount.totalSpent.eq(new anchor.BN(0)));
   });
 
+  it("[update_merchant] validates merchant name", async () => {
+    // Validate short name.
+    try {
+      await program.methods
+        .updateMerchant(shortMerchantName, null)
+        .accountsPartial({
+          signer: merchantKeypair.publicKey,
+          merchant,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchantKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /NameTooShort/);
+    }
+
+    // Validate long name.
+    try {
+      await program.methods
+        .updateMerchant(longMerchantName, null)
+        .accountsPartial({
+          signer: merchantKeypair.publicKey,
+          merchant,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchantKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /NameTooLong/);
+    }
+  });
+
+  it("[update_merchant] validates merchant description", async () => {
+    // Validate long description.
+    try {
+      await program.methods
+        .updateMerchant(null, longMerchantDescription)
+        .accountsPartial({
+          signer: merchantKeypair.publicKey,
+          merchant,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchantKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /DescriptionTooLong/);
+    }
+  });
+
+  it("[update_merchant] updates merchant", async () => {
+    const newMerchantName = `${merchantName} (New)`;
+    const newMerchantDescription = `${merchantDescription} (New)`;
+
+    await program.methods
+      .updateMerchant(newMerchantName, newMerchantDescription)
+      .accountsPartial({
+        signer: merchantKeypair.publicKey,
+        merchant,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([merchantKeypair])
+      .rpc();
+
+    const merchantAccount = await program.account.merchant.fetch(merchant);
+    assert.ok(
+      merchantAccount.owner.toString() === merchantKeypair.publicKey.toString()
+    );
+    assert.ok(merchantAccount.name === newMerchantName);
+    assert.ok(merchantAccount.description === newMerchantDescription);
+  });
+
   it("[create_affiliate] validates affiliate name", async () => {
     // Validate short name.
     try {
@@ -312,6 +383,74 @@ describe("fili8", () => {
     assert.ok(affiliateAccount.description === affiliateDescription);
     assert.ok(affiliateAccount.totalCampaigns === 0);
     assert.ok(affiliateAccount.totalEarned.eq(new anchor.BN(0)));
+  });
+
+  it("[update_affiliate] validates affiliate name", async () => {
+    // Validate short name.
+    try {
+      await program.methods
+        .updateAffiliate(shortAffiliateName, null, null)
+        .accountsPartial({
+          signer: affiliateKeypair.publicKey,
+          affiliate,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([affiliateKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /NameTooShort/);
+    }
+
+    // Validate long name.
+    try {
+      await program.methods
+        .updateAffiliate(longAffiliateName, null, null)
+        .accountsPartial({
+          signer: affiliateKeypair.publicKey,
+          affiliate,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([affiliateKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /NameTooLong/);
+    }
+  });
+
+  it("[update_affiliate] validates affiliate description", async () => {
+    // Validate long description.
+    try {
+      await program.methods
+        .updateAffiliate(null, longAffiliateDescription, null)
+        .accountsPartial({
+          signer: affiliateKeypair.publicKey,
+          affiliate,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([affiliateKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /DescriptionTooLong/);
+    }
+  });
+
+  it("[update_affiliate] updates affiliate", async () => {
+    const newAffiliateName = `${affiliateName} (New)`;
+    const newAffiliateDescription = `${affiliateDescription} (New)`;
+
+    await program.methods
+      .updateAffiliate(newAffiliateName, newAffiliateDescription, null)
+      .accountsPartial({
+        signer: affiliateKeypair.publicKey,
+        affiliate,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([affiliateKeypair])
+      .rpc();
+
+    const affiliateAccount = await program.account.affiliate.fetch(affiliate);
+    assert.ok(affiliateAccount.name === newAffiliateName);
+    assert.ok(affiliateAccount.description === newAffiliateDescription);
   });
 
   it("[create_campaign] validates campaign name", async () => {

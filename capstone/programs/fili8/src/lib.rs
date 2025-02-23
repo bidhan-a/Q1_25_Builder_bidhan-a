@@ -29,6 +29,14 @@ pub mod fili_8 {
         ctx.accounts.create_merchant(name, description, &ctx.bumps)
     }
 
+    pub fn update_merchant(
+        ctx: Context<UpdateMerchant>,
+        name: Option<String>,
+        description: Option<String>,
+    ) -> Result<()> {
+        ctx.accounts.update_merchant(name, description)
+    }
+
     pub fn create_affiliate(
         ctx: Context<CreateAffiliate>,
         name: String,
@@ -37,6 +45,16 @@ pub mod fili_8 {
     ) -> Result<()> {
         ctx.accounts
             .create_affiliate(name, description, payout_address, &ctx.bumps)
+    }
+
+    pub fn update_affiliate(
+        ctx: Context<UpdateAffiliate>,
+        name: Option<String>,
+        description: Option<String>,
+        payout_address: Option<Pubkey>,
+    ) -> Result<()> {
+        ctx.accounts
+            .update_affiliate(name, description, payout_address)
     }
 
     pub fn create_campaign(
