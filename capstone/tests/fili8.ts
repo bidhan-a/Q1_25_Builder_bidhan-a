@@ -597,7 +597,6 @@ describe("fili8", () => {
     assert.ok(campaignAccount.successfulReferrals === 0);
     assert.exists(campaignAccount.createdAt);
     assert.isNull(campaignAccount.endsAt);
-    assert.isFalse(campaignAccount.isCancelled);
     assert.isFalse(campaignAccount.isPaused);
     assert.ok(campaignAccount.totalAffiliates === 0);
 

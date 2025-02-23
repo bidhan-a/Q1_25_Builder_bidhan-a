@@ -20,7 +20,6 @@ pub struct Campaign {
     pub created_at: i64,
     pub ends_at: Option<i64>,
     pub is_paused: bool,
-    pub is_cancelled: bool,
     pub is_closed: bool,
     pub total_affiliates: u32,
     pub campaign_bump: u8,

@@ -86,4 +86,8 @@ pub mod fili_8 {
     pub fn report_conversion(ctx: Context<ReportConversion>) -> Result<()> {
         ctx.accounts.report_conversion()
     }
+
+    pub fn close_campaign(ctx: Context<CloseCampaign>) -> Result<()> {
+        ctx.accounts.close_campaign()
+    }
 }

@@ -22,4 +22,7 @@ pub use join_campaign::*;
 pub mod report_conversion;
 pub use report_conversion::*;
 
+pub mod close_campaign;
+pub use close_campaign::*;
+
 pub mod helpers;

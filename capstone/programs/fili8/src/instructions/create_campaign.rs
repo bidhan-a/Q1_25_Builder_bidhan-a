@@ -80,7 +80,6 @@ impl<'info> CreateCampaign<'info> {
             created_at: Clock::get()?.unix_timestamp,
             ends_at,
             is_paused: false,
-            is_cancelled: false,
             is_closed: false,
             total_affiliates: 0,
             campaign_bump: bumps.campaign,
