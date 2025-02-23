@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 
+use crate::errors::Error;
 use crate::state::{Affiliate, Campaign, CampaignAffiliate};
 
 #[derive(Accounts)]
@@ -34,6 +35,18 @@ pub struct JoinCampaign<'info> {
 
 impl<'info> JoinCampaign<'info> {
     pub fn join_campaign(&mut self, bumps: &JoinCampaignBumps) -> Result<()> {
+        require!(!self.campaign.is_closed, Error::CampaignClosed);
+
+        match self.campaign.ends_at {
+            Some(ends_at) => require!(
+                ends_at > Clock::get()?.unix_timestamp,
+                Error::CampaignExpired
+            ),
+            None => {}
+        }
+
+        require!(!self.campaign.is_paused, Error::CampaignPaused);
+
         self.campaign_affiliate.set_inner(CampaignAffiliate {
             campaign: self.campaign.key(),
             affiliate: self.affiliate.key(),

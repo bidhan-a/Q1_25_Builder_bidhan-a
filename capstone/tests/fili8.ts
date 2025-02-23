@@ -16,6 +16,7 @@ describe("fili8", () => {
   const merchantKeypair = anchor.web3.Keypair.generate();
   const merchant2Keypair = anchor.web3.Keypair.generate();
   const affiliateKeypair = anchor.web3.Keypair.generate();
+  const affiliate2Keypair = anchor.web3.Keypair.generate();
 
   // PDAs.
   let config: anchor.web3.PublicKey;
@@ -23,6 +24,7 @@ describe("fili8", () => {
   let merchant: anchor.web3.PublicKey;
   let merchant2: anchor.web3.PublicKey;
   let affiliate: anchor.web3.PublicKey;
+  let affiliate2: anchor.web3.PublicKey;
   let campaign: anchor.web3.PublicKey;
   let escrow: anchor.web3.PublicKey;
   let campaignAffiliate: anchor.web3.PublicKey;
@@ -93,6 +95,16 @@ describe("fili8", () => {
     );
     await provider.connection.confirmTransaction({
       signature: affiliateAirdrop,
+      blockhash: latestBlockhash.blockhash,
+      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+    });
+
+    const affiliate2Airdrop = await provider.connection.requestAirdrop(
+      affiliate2Keypair.publicKey,
+      100 * LAMPORTS_PER_SOL
+    );
+    await provider.connection.confirmTransaction({
+      signature: affiliate2Airdrop,
       blockhash: latestBlockhash.blockhash,
       lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
     });
@@ -804,5 +816,37 @@ describe("fili8", () => {
         campaignAffiliateAccountBefore.totalEarned.add(commissionPerReferral)
       )
     );
+  });
+
+  it("[join_campaign] affiliate cannot join a paused campaign", async () => {
+    // Create a second affiliate.
+    await program.methods
+      .createAffiliate(
+        affiliateName,
+        affiliateDescription,
+        affiliate2Keypair.publicKey
+      )
+      .accountsPartial({
+        signer: affiliate2Keypair.publicKey,
+        affiliate: affiliate2,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([affiliate2Keypair])
+      .rpc();
+
+    try {
+      await program.methods
+        .joinCampaign()
+        .accountsPartial({
+          signer: affiliate2Keypair.publicKey,
+          affiliate: affiliate2,
+          campaign,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([affiliate2Keypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /CampaignPaused/);
+    }
   });
 });
