@@ -94,7 +94,7 @@ impl<'info> UpdateCampaign<'info> {
         match ends_at {
             Some(ends_at) => {
                 require!(
-                    ends_at < Clock::get()?.unix_timestamp,
+                    ends_at > Clock::get()?.unix_timestamp,
                     Error::InvalidCampaignPeriod,
                 );
                 self.campaign.ends_at = Some(ends_at);
@@ -138,6 +138,13 @@ impl<'info> UpdateCampaign<'info> {
                     .available_budget
                     .checked_add(additional_budget)
                     .unwrap();
+
+                // If the campaign was paused and now has enough budget, unpause it.
+                if self.campaign.is_paused
+                    && self.campaign.available_budget >= self.campaign.commission_per_referral
+                {
+                    self.campaign.is_paused = false;
+                }
             }
             None => {}
         }

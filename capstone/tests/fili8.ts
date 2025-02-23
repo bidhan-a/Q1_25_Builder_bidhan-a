@@ -28,6 +28,7 @@ describe("fili8", () => {
   let campaign: anchor.web3.PublicKey;
   let escrow: anchor.web3.PublicKey;
   let campaignAffiliate: anchor.web3.PublicKey;
+  let campaignAffiliate2: anchor.web3.PublicKey;
 
   // Test values.
   const campaignCreationFee = 100;
@@ -129,6 +130,10 @@ describe("fili8", () => {
       [Buffer.from("affiliate"), affiliateKeypair.publicKey.toBuffer()],
       program.programId
     );
+    [affiliate2] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("affiliate"), affiliate2Keypair.publicKey.toBuffer()],
+      program.programId
+    );
     [campaign] = anchor.web3.PublicKey.findProgramAddressSync(
       [
         Buffer.from("campaign"),
@@ -146,6 +151,14 @@ describe("fili8", () => {
         Buffer.from("campaign_affiliate"),
         campaign.toBuffer(),
         affiliate.toBuffer(),
+      ],
+      program.programId
+    );
+    [campaignAffiliate2] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("campaign_affiliate"),
+        campaign.toBuffer(),
+        affiliate2.toBuffer(),
       ],
       program.programId
     );
@@ -848,5 +861,201 @@ describe("fili8", () => {
     } catch (err) {
       assert.match(err.toString(), /CampaignPaused/);
     }
+  });
+
+  it("[update_campaign] validates campaign name", async () => {
+    // Validate short name.
+    try {
+      await program.methods
+        .updateCampaign(shortCampaignName, null, null, null, null, null)
+        .accountsPartial({
+          signer: merchantKeypair.publicKey,
+          merchant,
+          campaign,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchantKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /NameTooShort/);
+    }
+
+    // Validate long name.
+    try {
+      await program.methods
+        .updateCampaign(longCampaignName, null, null, null, null, null)
+        .accountsPartial({
+          signer: merchantKeypair.publicKey,
+          merchant,
+          campaign,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchantKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /NameTooLong/);
+    }
+  });
+
+  it("[update_campaign] validates campaign description", async () => {
+    // Validate long description.
+    try {
+      await program.methods
+        .updateCampaign(null, longCampaignDescription, null, null, null, null)
+        .accountsPartial({
+          signer: merchantKeypair.publicKey,
+          merchant,
+          campaign,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchantKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /DescriptionTooLong/);
+    }
+  });
+
+  it("[update_campaign] validates campaign product_uri", async () => {
+    try {
+      await program.methods
+        .updateCampaign(null, null, invalidProductUri, null, null, null)
+        .accountsPartial({
+          signer: merchantKeypair.publicKey,
+          merchant,
+          campaign,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchantKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /InvalidProductURI/);
+    }
+  });
+
+  it("[update_campaign] validates campaign end_date", async () => {
+    const endDate = Math.floor(Date.now() / 1000) - 10; // 10 seconds ago.
+    try {
+      await program.methods
+        .updateCampaign(null, null, null, null, new anchor.BN(endDate), null)
+        .accountsPartial({
+          signer: merchantKeypair.publicKey,
+          merchant,
+          campaign,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchantKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /InvalidCampaignPeriod/);
+    }
+  });
+
+  it("[update_campaign] merchant updates a campaign", async () => {
+    const newCampaignName = `${campaignName} (New)`;
+    const newCampaignDescription = `${campaignDescription} (New)`;
+    const newCampaignProductUri = `${productUri}/new`;
+    const newCommissionPerReferral = new anchor.BN(5 * LAMPORTS_PER_SOL);
+    const newEndDate = new anchor.BN(Math.floor(Date.now() / 1000) + 3); // expires in 3 seconds.
+
+    await program.methods
+      .updateCampaign(
+        newCampaignName,
+        newCampaignDescription,
+        newCampaignProductUri,
+        newCommissionPerReferral,
+        newEndDate,
+        null
+      )
+      .accountsPartial({
+        signer: merchantKeypair.publicKey,
+        merchant,
+        campaign,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([merchantKeypair])
+      .rpc();
+
+    const campaignAccount = await program.account.campaign.fetch(campaign);
+    assert.ok(campaignAccount.name === newCampaignName);
+    assert.ok(campaignAccount.description === newCampaignDescription);
+    assert.ok(campaignAccount.productUri === newCampaignProductUri);
+    assert.ok(
+      campaignAccount.commissionPerReferral.eq(newCommissionPerReferral)
+    );
+    assert.ok(campaignAccount.endsAt.eq(newEndDate));
+  });
+
+  it("[update_campaign] merchant adds more budget to the campaign", async () => {
+    const treasuryBalanceBefore = new anchor.BN(
+      await provider.connection.getBalance(treasury)
+    );
+    const escrowBalanceBefore = new anchor.BN(
+      await provider.connection.getBalance(escrow)
+    );
+
+    const campaignAdditionalBudget = new anchor.BN(10 * LAMPORTS_PER_SOL);
+
+    await program.methods
+      .updateCampaign(null, null, null, null, null, campaignAdditionalBudget)
+      .accountsPartial({
+        signer: merchantKeypair.publicKey,
+        merchant,
+        campaign,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([merchantKeypair])
+      .rpc();
+
+    const treasuryBalanceAfter = new anchor.BN(
+      await provider.connection.getBalance(treasury)
+    );
+    const escrowBalanceAfter = new anchor.BN(
+      await provider.connection.getBalance(escrow)
+    );
+
+    const campaignAccount = await program.account.campaign.fetch(campaign);
+
+    // Check if the additonal budget was transferred to the escrow
+    // and the fees were transferred to the treasury.
+    const feeAmount = new anchor.BN(campaignCreationFee)
+      .mul(campaignAdditionalBudget)
+      .div(new anchor.BN(10000));
+    assert.ok(treasuryBalanceAfter.eq(treasuryBalanceBefore.add(feeAmount)));
+    assert.ok(
+      escrowBalanceAfter.eq(escrowBalanceBefore.add(campaignAdditionalBudget))
+    );
+
+    // Now that the campaign has enough budget, it shouldn't be paused anymore.
+    assert.ok(!campaignAccount.isPaused);
+  });
+
+  it("[join_campaign] affiliate can join an unpaused campaign", async () => {
+    await program.methods
+      .joinCampaign()
+      .accountsPartial({
+        signer: affiliate2Keypair.publicKey,
+        affiliate: affiliate2,
+        campaign,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([affiliate2Keypair])
+      .rpc();
+
+    const campaignAccount = await program.account.campaign.fetch(campaign);
+    const affiliate2Account = await program.account.affiliate.fetch(affiliate2);
+    const campaignAffiliate2Account =
+      await program.account.campaignAffiliate.fetch(campaignAffiliate2);
+
+    assert.ok(campaignAccount.totalAffiliates === 2);
+    assert.ok(affiliate2Account.totalCampaigns === 1);
+    assert.ok(
+      campaignAffiliate2Account.campaign.toString() === campaign.toString()
+    );
+    assert.ok(
+      campaignAffiliate2Account.affiliate.toString() === affiliate2.toString()
+    );
+    assert.ok(campaignAffiliate2Account.successfulReferrals === 0);
+    assert.ok(campaignAffiliate2Account.totalEarned.eq(new anchor.BN(0)));
+    assert.ok(affiliate2Account.totalCampaigns === 1);
   });
 });

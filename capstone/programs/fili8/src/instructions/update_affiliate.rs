@@ -49,11 +49,6 @@ impl<'info> UpdateAffiliate<'info> {
             None => {}
         }
 
-        msg!("Updated affiliate");
-        msg!("{}", self.affiliate.name);
-        msg!("{}", self.affiliate.description);
-        msg!("{}", self.affiliate.owner.to_string());
-
         Ok(())
     }
 }
