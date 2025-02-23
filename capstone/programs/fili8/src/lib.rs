@@ -79,6 +79,25 @@ pub mod fili_8 {
         )
     }
 
+    pub fn update_campaign(
+        ctx: Context<UpdateCampaign>,
+        name: Option<String>,
+        description: Option<String>,
+        product_uri: Option<String>,
+        commission_per_referral: Option<u64>,
+        ends_at: Option<i64>,
+        additional_budget: Option<u64>,
+    ) -> Result<()> {
+        ctx.accounts.update_campaign(
+            name,
+            description,
+            product_uri,
+            commission_per_referral,
+            ends_at,
+            additional_budget,
+        )
+    }
+
     pub fn join_campaign(ctx: Context<JoinCampaign>) -> Result<()> {
         ctx.accounts.join_campaign(&ctx.bumps)
     }

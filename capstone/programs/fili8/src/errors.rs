@@ -14,6 +14,8 @@ pub enum Error {
     InvalidCampaignOwner,
     #[msg("The payout address is invalid.")]
     InvalidPayoutAddress,
+    #[msg("The campaign period is invalid.")]
+    InvalidCampaignPeriod,
     #[msg("The campaign has been paused.")]
     CampaignPaused,
     #[msg("The campaign has expired.")]

@@ -16,6 +16,9 @@ pub use update_affiliate::*;
 pub mod create_campaign;
 pub use create_campaign::*;
 
+pub mod update_campaign;
+pub use update_campaign::*;
+
 pub mod join_campaign;
 pub use join_campaign::*;
 
