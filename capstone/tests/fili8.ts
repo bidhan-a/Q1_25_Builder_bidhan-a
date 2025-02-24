@@ -1173,4 +1173,39 @@ describe("fili8", () => {
     assert.ok(campaignAccountAfter.isClosed);
     assert.ok(campaignAccountAfter.availableBudget.eq(new anchor.BN(0)));
   });
+
+  it("[join_campaign] affiliate cannot join a closed campaign", async () => {
+    try {
+      await program.methods
+        .joinCampaign()
+        .accountsPartial({
+          signer: affiliate3Keypair.publicKey,
+          affiliate: affiliate3,
+          campaign,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([affiliate3Keypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /CampaignClosed/);
+    }
+  });
+
+  it("[close_campaign] merchant cannot close an already closed campaign", async () => {
+    try {
+      await program.methods
+        .closeCampaign()
+        .accountsPartial({
+          signer: merchantKeypair.publicKey,
+          merchant,
+          campaign,
+          withdrawAddress: merchantKeypair.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchantKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /CampaignClosed/);
+    }
+  });
 });
