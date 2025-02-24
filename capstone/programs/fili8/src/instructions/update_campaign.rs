@@ -59,6 +59,8 @@ impl<'info> UpdateCampaign<'info> {
         ends_at: Option<i64>,
         additional_budget: Option<u64>,
     ) -> Result<()> {
+        require!(!self.campaign.is_closed, Error::CampaignClosed);
+
         match name {
             Some(name) => {
                 require!(name.len() <= 50, Error::NameTooLong);

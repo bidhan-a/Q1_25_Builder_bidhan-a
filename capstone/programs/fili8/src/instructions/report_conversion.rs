@@ -69,6 +69,16 @@ pub struct ReportConversion<'info> {
 
 impl<'info> ReportConversion<'info> {
     pub fn report_conversion(&mut self) -> Result<()> {
+        require!(!self.campaign.is_paused, Error::CampaignPaused);
+        require!(!self.campaign.is_closed, Error::CampaignClosed);
+        match self.campaign.ends_at {
+            Some(ends_at) => require!(
+                ends_at > Clock::get()?.unix_timestamp,
+                Error::CampaignExpired
+            ),
+            None => {}
+        }
+
         // Subtract fees from commission.
         let commission_fee = (self.config.commission_fee as u64)
             .checked_mul(self.campaign.commission_per_referral)

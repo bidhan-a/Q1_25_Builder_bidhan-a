@@ -5,6 +5,8 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL, SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
 
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 describe("fili8", () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
@@ -17,6 +19,7 @@ describe("fili8", () => {
   const merchant2Keypair = anchor.web3.Keypair.generate();
   const affiliateKeypair = anchor.web3.Keypair.generate();
   const affiliate2Keypair = anchor.web3.Keypair.generate();
+  const affiliate3Keypair = anchor.web3.Keypair.generate();
 
   // PDAs.
   let config: anchor.web3.PublicKey;
@@ -25,6 +28,7 @@ describe("fili8", () => {
   let merchant2: anchor.web3.PublicKey;
   let affiliate: anchor.web3.PublicKey;
   let affiliate2: anchor.web3.PublicKey;
+  let affiliate3: anchor.web3.PublicKey;
   let campaign: anchor.web3.PublicKey;
   let escrow: anchor.web3.PublicKey;
   let campaignAffiliate: anchor.web3.PublicKey;
@@ -106,6 +110,16 @@ describe("fili8", () => {
     );
     await provider.connection.confirmTransaction({
       signature: affiliate2Airdrop,
+      blockhash: latestBlockhash.blockhash,
+      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+    });
+
+    const affiliate3Airdrop = await provider.connection.requestAirdrop(
+      affiliate3Keypair.publicKey,
+      100 * LAMPORTS_PER_SOL
+    );
+    await provider.connection.confirmTransaction({
+      signature: affiliate3Airdrop,
       blockhash: latestBlockhash.blockhash,
       lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
     });
@@ -955,7 +969,6 @@ describe("fili8", () => {
     const newCampaignDescription = `${campaignDescription} (New)`;
     const newCampaignProductUri = `${productUri}/new`;
     const newCommissionPerReferral = new anchor.BN(5 * LAMPORTS_PER_SOL);
-    const newEndDate = new anchor.BN(Math.floor(Date.now() / 1000) + 3); // expires in 3 seconds.
 
     await program.methods
       .updateCampaign(
@@ -963,7 +976,7 @@ describe("fili8", () => {
         newCampaignDescription,
         newCampaignProductUri,
         newCommissionPerReferral,
-        newEndDate,
+        null,
         null
       )
       .accountsPartial({
@@ -982,7 +995,6 @@ describe("fili8", () => {
     assert.ok(
       campaignAccount.commissionPerReferral.eq(newCommissionPerReferral)
     );
-    assert.ok(campaignAccount.endsAt.eq(newEndDate));
   });
 
   it("[update_campaign] merchant adds more budget to the campaign", async () => {
@@ -1029,7 +1041,7 @@ describe("fili8", () => {
     assert.ok(!campaignAccount.isPaused);
   });
 
-  it("[join_campaign] affiliate can join an unpaused campaign", async () => {
+  it("[join_campaign] affiliate can join a previously paused (now unpaused) campaign", async () => {
     await program.methods
       .joinCampaign()
       .accountsPartial({
@@ -1057,5 +1069,108 @@ describe("fili8", () => {
     assert.ok(campaignAffiliate2Account.successfulReferrals === 0);
     assert.ok(campaignAffiliate2Account.totalEarned.eq(new anchor.BN(0)));
     assert.ok(affiliate2Account.totalCampaigns === 1);
+  });
+
+  it("[join_campaign] affiliate cannot join an expired campaign", async () => {
+    // Update the end date so that it expires in 1 second from now.
+    const newEndDate = new anchor.BN(Math.floor(Date.now() / 1000) + 1);
+    await program.methods
+      .updateCampaign(null, null, null, null, newEndDate, null)
+      .accountsPartial({
+        signer: merchantKeypair.publicKey,
+        merchant,
+        campaign,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([merchantKeypair])
+      .rpc();
+
+    // Wait for campaign to expire.
+    await delay(1000);
+
+    // Create a third affiliate.
+    await program.methods
+      .createAffiliate(
+        affiliateName,
+        affiliateDescription,
+        affiliate3Keypair.publicKey
+      )
+      .accountsPartial({
+        signer: affiliate3Keypair.publicKey,
+        affiliate: affiliate3,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([affiliate3Keypair])
+      .rpc();
+
+    try {
+      await program.methods
+        .joinCampaign()
+        .accountsPartial({
+          signer: affiliate3Keypair.publicKey,
+          affiliate: affiliate3,
+          campaign,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([affiliate3Keypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /CampaignExpired/);
+    }
+  });
+
+  it("[close_campaign] validates campaign owner", async () => {
+    try {
+      // Merchant tries to close a campaign that they don't own.
+      await program.methods
+        .closeCampaign()
+        .accountsPartial({
+          signer: merchant2Keypair.publicKey,
+          merchant: merchant2,
+          campaign,
+          withdrawAddress: merchant2Keypair.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchant2Keypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /InvalidCampaignOwner/);
+    }
+  });
+
+  it("[close_campaign] merchant closes a campaign", async () => {
+    const escrowBalanceBefore = new anchor.BN(
+      await provider.connection.getBalance(escrow)
+    );
+    const merchantWithdrawAddressBalanceBefore = new anchor.BN(
+      await provider.connection.getBalance(merchantKeypair.publicKey)
+    );
+
+    await program.methods
+      .closeCampaign()
+      .accountsPartial({
+        signer: merchantKeypair.publicKey,
+        merchant,
+        campaign,
+        withdrawAddress: merchantKeypair.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([merchantKeypair])
+      .rpc();
+
+    const merchantWithdrawAddressBalanceAfter = new anchor.BN(
+      await provider.connection.getBalance(merchantKeypair.publicKey)
+    );
+    const campaignAccountAfter = await program.account.campaign.fetch(campaign);
+
+    // Check if the remaining budget was transferred to the withdraw address.
+    assert.ok(
+      merchantWithdrawAddressBalanceAfter.eq(
+        merchantWithdrawAddressBalanceBefore.add(escrowBalanceBefore)
+      )
+    );
+
+    assert.ok(campaignAccountAfter.isClosed);
+    assert.ok(campaignAccountAfter.availableBudget.eq(new anchor.BN(0)));
   });
 });

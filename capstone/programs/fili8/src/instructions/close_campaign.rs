@@ -60,6 +60,7 @@ impl<'info> CloseCampaign<'info> {
         )?;
 
         // Update Campaign state.
+        self.campaign.available_budget = 0;
         self.campaign.is_closed = true;
 
         Ok(())
