@@ -67,6 +67,17 @@ impl<'info> CreateCampaign<'info> {
         require!(description.len() <= 100, Error::DescriptionTooLong);
         require!(Url::parse(&product_uri).is_ok(), Error::InvalidProductURI);
 
+        match ends_at {
+            Some(ends_at) => {
+                require!(
+                    ends_at > Clock::get()?.unix_timestamp,
+                    Error::InvalidCampaignPeriod,
+                );
+                self.campaign.ends_at = Some(ends_at);
+            }
+            None => {}
+        }
+
         self.campaign.set_inner(Campaign {
             seed,
             owner: self.merchant.key(),

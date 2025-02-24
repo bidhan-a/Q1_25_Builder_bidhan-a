@@ -590,6 +590,31 @@ describe("fili8", () => {
     }
   });
 
+  it("[create_campaign] validates campaign end_date", async () => {
+    const endDate = Math.floor(Date.now() / 1000) - 10; // 10 seconds ago.
+    try {
+      await program.methods
+        .createCampaign(
+          campaignSeed,
+          campaignName,
+          campaignDescription,
+          productUri,
+          campaignBudget,
+          commissionPerReferral,
+          new anchor.BN(endDate)
+        )
+        .accountsPartial({
+          signer: merchantKeypair.publicKey,
+          merchant,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchantKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /InvalidCampaignPeriod/);
+    }
+  });
+
   it("[create_campaign] merchant creates a campaign", async () => {
     const treasuryBalanceBefore = new anchor.BN(
       await provider.connection.getBalance(treasury)
