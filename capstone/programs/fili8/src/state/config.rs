@@ -8,5 +8,4 @@ pub struct Config {
     pub commission_fee: u16,
     pub bump: u8,
     pub treasury_bump: u8,
-    pub reward_mint_bump: u8,
 }

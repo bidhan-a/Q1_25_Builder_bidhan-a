@@ -18,16 +18,6 @@ pub struct InitializeConfig<'info> {
     pub config: Account<'info, Config>,
 
     #[account(
-        init,
-        payer=signer,
-        seeds=[b"reward_mint"],
-        bump,
-        mint::decimals=6,
-        mint::authority=config
-    )]
-    pub reward_mint: InterfaceAccount<'info, Mint>,
-
-    #[account(
         seeds=[b"treasury"],
         bump
     )]
@@ -50,7 +40,6 @@ impl<'info> InitializeConfig<'info> {
             commission_fee,
             bump: bumps.config,
             treasury_bump: bumps.treasury,
-            reward_mint_bump: bumps.reward_mint,
         });
 
         Ok(())
