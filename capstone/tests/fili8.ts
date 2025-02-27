@@ -1109,7 +1109,7 @@ describe("fili8", () => {
       .rpc();
 
     // Wait for campaign to expire.
-    await delay(1000);
+    await delay(1500);
 
     // Create a third affiliate.
     await program.methods
