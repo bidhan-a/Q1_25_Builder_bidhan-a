@@ -109,4 +109,8 @@ pub mod fili_8 {
     pub fn close_campaign(ctx: Context<CloseCampaign>) -> Result<()> {
         ctx.accounts.close_campaign()
     }
+
+    pub fn withdraw_fees(ctx: Context<WithdrawFees>) -> Result<()> {
+        ctx.accounts.withdraw_fees()
+    }
 }

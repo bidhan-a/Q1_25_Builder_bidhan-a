@@ -22,4 +22,6 @@ pub enum Error {
     CampaignExpired,
     #[msg("The campaign has been closed.")]
     CampaignClosed,
+    #[msg("The admin is invalid.")]
+    InvalidAdmin,
 }

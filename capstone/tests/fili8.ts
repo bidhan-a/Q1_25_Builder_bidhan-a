@@ -13,7 +13,7 @@ describe("fili8", () => {
   const program = anchor.workspace.Fili8 as Program<Fili8>;
 
   // Accounts.
-  const initializerKeypair = anchor.web3.Keypair.generate();
+  const adminKeypair = anchor.web3.Keypair.generate();
   const merchantKeypair = anchor.web3.Keypair.generate();
   const merchant2Keypair = anchor.web3.Keypair.generate();
   const affiliateKeypair = anchor.web3.Keypair.generate();
@@ -63,12 +63,12 @@ describe("fili8", () => {
   before(async () => {
     const latestBlockhash = await provider.connection.getLatestBlockhash();
 
-    const initializerAirdrop = await provider.connection.requestAirdrop(
-      initializerKeypair.publicKey,
+    const adminAirdrop = await provider.connection.requestAirdrop(
+      adminKeypair.publicKey,
       100 * LAMPORTS_PER_SOL
     );
     await provider.connection.confirmTransaction({
-      signature: initializerAirdrop,
+      signature: adminAirdrop,
       blockhash: latestBlockhash.blockhash,
       lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
     });
@@ -181,15 +181,15 @@ describe("fili8", () => {
     await program.methods
       .initializeConfig(campaignCreationFee, commissionFee)
       .accountsPartial({
-        signer: initializerKeypair.publicKey,
+        signer: adminKeypair.publicKey,
         config,
         systemProgram: SystemProgram.programId,
       })
-      .signers([initializerKeypair])
+      .signers([adminKeypair])
       .rpc();
 
     const configAccount = await program.account.config.fetch(config);
-    assert.ok(configAccount.admin.equals(initializerKeypair.publicKey));
+    assert.ok(configAccount.admin.equals(adminKeypair.publicKey));
     assert.ok(configAccount.campaignCreationFee === campaignCreationFee);
     assert.ok(configAccount.commissionFee === commissionFee);
   });
@@ -1230,5 +1230,49 @@ describe("fili8", () => {
     } catch (err) {
       assert.match(err.toString(), /CampaignClosed/);
     }
+  });
+
+  it("[withdraw_fees] non-admin cannot withdraw fees from treasury", async () => {
+    try {
+      await program.methods
+        .withdrawFees()
+        .accountsPartial({
+          signer: merchantKeypair.publicKey,
+          withdrawAddress: merchantKeypair.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchantKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /InvalidAdmin/);
+    }
+  });
+
+  it("[withdraw_fees] admin withdraws fees from treasury", async () => {
+    const treasuryBalanceBefore = new anchor.BN(
+      await provider.connection.getBalance(treasury)
+    );
+    const adminWithdrawAddressBalanceBefore = new anchor.BN(
+      await provider.connection.getBalance(adminKeypair.publicKey)
+    );
+
+    await program.methods
+      .withdrawFees()
+      .accountsPartial({
+        signer: adminKeypair.publicKey,
+        withdrawAddress: adminKeypair.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([adminKeypair])
+      .rpc();
+
+    const adminWithdrawAddressBalanceAfter = new anchor.BN(
+      await provider.connection.getBalance(adminKeypair.publicKey)
+    );
+    assert.ok(
+      adminWithdrawAddressBalanceAfter.eq(
+        adminWithdrawAddressBalanceBefore.add(treasuryBalanceBefore)
+      )
+    );
   });
 });

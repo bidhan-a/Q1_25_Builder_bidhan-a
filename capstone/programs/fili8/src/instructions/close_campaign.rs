@@ -51,13 +51,15 @@ impl<'info> CloseCampaign<'info> {
 
         // Transfer remaining budget to withdraw address.
         let remaining_amount = self.escrow.to_account_info().lamports();
-        transfer_sol(
-            self.escrow.to_account_info(),
-            self.withdraw_address.to_account_info(),
-            remaining_amount,
-            self.system_program.to_account_info(),
-            Some(signer_seeds),
-        )?;
+        if remaining_amount > 0 {
+            transfer_sol(
+                self.escrow.to_account_info(),
+                self.withdraw_address.to_account_info(),
+                remaining_amount,
+                self.system_program.to_account_info(),
+                Some(signer_seeds),
+            )?;
+        }
 
         // Update Campaign state.
         self.campaign.available_budget = 0;

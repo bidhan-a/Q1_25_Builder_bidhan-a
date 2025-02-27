@@ -28,4 +28,7 @@ pub use report_conversion::*;
 pub mod close_campaign;
 pub use close_campaign::*;
 
+pub mod withdraw_fees;
+pub use withdraw_fees::*;
+
 pub mod helpers;
