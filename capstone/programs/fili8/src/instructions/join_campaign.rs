@@ -13,14 +13,14 @@ pub struct JoinCampaign<'info> {
         seeds=[b"campaign", campaign.owner.key().as_ref(), campaign.seed.to_le_bytes().as_ref()],
         bump=campaign.campaign_bump,
     )]
-    pub campaign: Account<'info, Campaign>,
+    pub campaign: Box<Account<'info, Campaign>>,
 
     #[account(
         mut,
         seeds=[b"affiliate", signer.key.as_ref()],
         bump=affiliate.bump
     )]
-    pub affiliate: Account<'info, Affiliate>,
+    pub affiliate: Box<Account<'info, Affiliate>>,
 
     #[account(
         init,
@@ -29,7 +29,7 @@ pub struct JoinCampaign<'info> {
         bump,
         space=CampaignAffiliate::INIT_SPACE + 8
     )]
-    pub campaign_affiliate: Account<'info, CampaignAffiliate>,
+    pub campaign_affiliate: Box<Account<'info, CampaignAffiliate>>,
     pub system_program: Program<'info, System>,
 }
 

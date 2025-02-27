@@ -13,7 +13,7 @@ pub struct UpdateMerchant<'info> {
         seeds=[b"merchant", signer.key.as_ref()],
         bump=merchant.bump,
     )]
-    pub merchant: Account<'info, Merchant>,
+    pub merchant: Box<Account<'info, Merchant>>,
 
     pub system_program: Program<'info, System>,
 }

@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token_interface::{Mint, TokenInterface};
 
 use crate::state::Config;
 
@@ -15,7 +14,7 @@ pub struct InitializeConfig<'info> {
         bump,
         space=Config::INIT_SPACE + 8
     )]
-    pub config: Account<'info, Config>,
+    pub config: Box<Account<'info, Config>>,
 
     #[account(
         seeds=[b"treasury"],
@@ -23,7 +22,6 @@ pub struct InitializeConfig<'info> {
     )]
     pub treasury: SystemAccount<'info>,
 
-    pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
 

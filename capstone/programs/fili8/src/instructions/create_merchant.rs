@@ -15,7 +15,7 @@ pub struct CreateMerchant<'info> {
         bump,
         space=Merchant::INIT_SPACE + 8
     )]
-    pub merchant: Account<'info, Merchant>,
+    pub merchant: Box<Account<'info, Merchant>>,
 
     pub system_program: Program<'info, System>,
 }

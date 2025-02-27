@@ -15,7 +15,7 @@ pub struct CreateAffiliate<'info> {
         bump,
         space=Affiliate::INIT_SPACE + 8
     )]
-    pub affiliate: Account<'info, Affiliate>,
+    pub affiliate: Box<Account<'info, Affiliate>>,
 
     pub system_program: Program<'info, System>,
 }

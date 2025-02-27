@@ -15,7 +15,7 @@ pub struct CreateCampaign<'info> {
         seeds=[b"config"],
         bump=config.bump
     )]
-    pub config: Account<'info, Config>,
+    pub config: Box<Account<'info, Config>>,
 
     #[account(
         mut,
@@ -29,7 +29,7 @@ pub struct CreateCampaign<'info> {
         seeds=[b"merchant", signer.key.as_ref()],
         bump=merchant.bump
     )]
-    pub merchant: Account<'info, Merchant>,
+    pub merchant: Box<Account<'info, Merchant>>,
 
     #[account(
         init,
@@ -38,7 +38,7 @@ pub struct CreateCampaign<'info> {
         bump,
         space=Campaign::INIT_SPACE + 8
     )]
-    pub campaign: Account<'info, Campaign>,
+    pub campaign: Box<Account<'info, Campaign>>,
 
     #[account(
         mut,

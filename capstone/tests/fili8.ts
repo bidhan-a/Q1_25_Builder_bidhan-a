@@ -1,7 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Fili8 } from "../target/types/fili_8";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL, SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
 
@@ -185,7 +184,6 @@ describe("fili8", () => {
         signer: initializerKeypair.publicKey,
         config,
         systemProgram: SystemProgram.programId,
-        tokenProgram: TOKEN_PROGRAM_ID,
       })
       .signers([initializerKeypair])
       .rpc();

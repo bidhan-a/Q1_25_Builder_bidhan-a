@@ -14,7 +14,7 @@ pub struct CloseCampaign<'info> {
         seeds=[b"merchant", signer.key.as_ref()],
         bump=merchant.bump,
     )]
-    pub merchant: Account<'info, Merchant>,
+    pub merchant: Box<Account<'info, Merchant>>,
 
     #[account(
         mut,
@@ -22,7 +22,7 @@ pub struct CloseCampaign<'info> {
         bump=campaign.campaign_bump,
         constraint=campaign.owner.key() == merchant.key() @ Error::InvalidCampaignOwner
     )]
-    pub campaign: Account<'info, Campaign>,
+    pub campaign: Box<Account<'info, Campaign>>,
 
     #[account(
         mut,

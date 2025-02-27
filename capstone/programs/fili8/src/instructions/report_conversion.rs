@@ -13,7 +13,7 @@ pub struct ReportConversion<'info> {
         seeds=[b"config"],
         bump=config.bump
     )]
-    pub config: Account<'info, Config>,
+    pub config: Box<Account<'info, Config>>,
 
     #[account(
         mut,
@@ -27,7 +27,7 @@ pub struct ReportConversion<'info> {
         seeds=[b"merchant", signer.key.as_ref()],
         bump=merchant.bump,
     )]
-    pub merchant: Account<'info, Merchant>,
+    pub merchant: Box<Account<'info, Merchant>>,
 
     #[account(
         mut,
@@ -35,7 +35,7 @@ pub struct ReportConversion<'info> {
         bump=campaign.campaign_bump,
         constraint=campaign.owner.key() == merchant.key() @ Error::InvalidCampaignOwner
     )]
-    pub campaign: Account<'info, Campaign>,
+    pub campaign: Box<Account<'info, Campaign>>,
 
     #[account(
         mut,
@@ -49,14 +49,14 @@ pub struct ReportConversion<'info> {
         seeds=[b"affiliate", affiliate.owner.key().as_ref()],
         bump=affiliate.bump
     )]
-    pub affiliate: Account<'info, Affiliate>,
+    pub affiliate: Box<Account<'info, Affiliate>>,
 
     #[account(
         mut,
         seeds=[b"campaign_affiliate", campaign.key().as_ref(), affiliate.key().as_ref()],
         bump=campaign_affiliate.bump,
     )]
-    pub campaign_affiliate: Account<'info, CampaignAffiliate>,
+    pub campaign_affiliate: Box<Account<'info, CampaignAffiliate>>,
 
     #[account(
         mut,

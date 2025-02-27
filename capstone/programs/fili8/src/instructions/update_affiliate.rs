@@ -13,7 +13,7 @@ pub struct UpdateAffiliate<'info> {
         seeds=[b"affiliate", signer.key.as_ref()],
         bump=affiliate.bump,
     )]
-    pub affiliate: Account<'info, Affiliate>,
+    pub affiliate: Box<Account<'info, Affiliate>>,
 
     pub system_program: Program<'info, System>,
 }
