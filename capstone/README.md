@@ -5,10 +5,10 @@ fili8 is a decentralized affiliate marketing platform built on Solana. By levera
 
 ---
 
-## Deployed Links  
-
-- **Solana Program ID**: https://explorer.solana.com/address/79jtSwKgEBHQBeamoBbbTifFHFFutapofAoYV9TtPCjf?cluster=devnet
-
+## Devnet Program ID
+```bash
+79jtSwKgEBHQBeamoBbbTifFHFFutapofAoYV9TtPCjf
+```
 ---
 
 ## Features  
