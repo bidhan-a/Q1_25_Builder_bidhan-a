@@ -1275,4 +1275,37 @@ describe("fili8", () => {
       )
     );
   });
+
+  it("[update_config] non-admin cannot update the config", async () => {
+    try {
+      await program.methods
+        .updateConfig(campaignCreationFee, commissionFee)
+        .accountsPartial({
+          signer: merchantKeypair.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([merchantKeypair])
+        .rpc();
+    } catch (err) {
+      assert.match(err.toString(), /InvalidAdmin/);
+    }
+  });
+
+  it("[update_config] admin updates the config", async () => {
+    const newCampaignCreationFee = campaignCreationFee + 10;
+    const newCommissionFee = commissionFee + 5;
+
+    await program.methods
+      .updateConfig(newCampaignCreationFee, newCommissionFee)
+      .accountsPartial({
+        signer: adminKeypair.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([adminKeypair])
+      .rpc();
+
+    const configAccount = await program.account.config.fetch(config);
+    assert.ok(configAccount.campaignCreationFee === newCampaignCreationFee);
+    assert.ok(configAccount.commissionFee === newCommissionFee);
+  });
 });

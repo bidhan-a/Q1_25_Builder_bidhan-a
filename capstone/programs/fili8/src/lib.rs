@@ -21,6 +21,15 @@ pub mod fili_8 {
             .initialize_config(campaign_creation_fee, commission_fee, &ctx.bumps)
     }
 
+    pub fn update_config(
+        ctx: Context<UpdateConfig>,
+        campaign_creation_fee: Option<u16>,
+        commission_fee: Option<u16>,
+    ) -> Result<()> {
+        ctx.accounts
+            .update_config(campaign_creation_fee, commission_fee)
+    }
+
     pub fn create_merchant(
         ctx: Context<CreateMerchant>,
         name: String,
