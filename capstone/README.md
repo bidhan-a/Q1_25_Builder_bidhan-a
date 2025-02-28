@@ -47,14 +47,13 @@ Ensure you have the following installed:
    
 2. **Build anchor program**
     ```bash
-    cd anchor
     anchor build
     ```
 
 3. **Deploy program**
 Deploy the program locally or to devnet
    ```bash
-   anchor deploy --provider.cluster localnet
+   anchor deploy
    ```
 
 4. **Run tests**
