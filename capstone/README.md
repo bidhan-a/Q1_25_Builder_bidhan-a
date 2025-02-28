@@ -1,7 +1,7 @@
 # fili8
 
 ## Overview  
-fili8 is a decentralized affiliate marketing platform built on Solana. By leveraging blockchain technology, Fili8 eliminates intermediaries and enables direct collaboration between affiliates and advertisers. Campaigns are managed via smart contracts, and referral metrics like conversions and payouts are tracked immutably on-chain. Metrics related to an affiliate’s participation and performance are also stored on-chain, showcasing their work and building a reputation in the platform.
+fili8 is a decentralized affiliate marketing platform built on Solana. By leveraging blockchain technology, fili8 eliminates intermediaries and enables direct collaboration between affiliates and advertisers. Campaigns are managed via smart contracts, and referral metrics like conversions and payouts are tracked immutably on-chain. Metrics related to an affiliate’s participation and performance are also stored on-chain, showcasing their work and building a reputation in the platform.
 
 ---
 
